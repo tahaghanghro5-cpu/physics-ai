@@ -1,0 +1,2523 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PHYSIX AI — Intelligent Physics Learning Assistant</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace']
+          }
+        }
+      }
+    };
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;600;700&family=Noto+Nastaliq+Urdu:wght@400;700&family=Noto+Sans+Arabic:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    .lang-ur { font-family: 'Noto Nastaliq Urdu', 'Noto Sans Arabic', sans-serif; direction: rtl; line-height: 2.0; }
+    .lang-sd { font-family: 'Noto Sans Arabic', sans-serif; direction: rtl; line-height: 1.85; }
+    .hl-off .hl-card { background: rgba(15, 23, 42, 0.4) !important; border-color: rgba(51, 65, 85, 0.6) !important; }
+    .hl-off .hl-tag { display: none !important; }
+    ::-webkit-scrollbar { width: 5px; height: 5px; }
+    ::-webkit-scrollbar-thumb { background: rgba(100, 116, 139, 0.35); border-radius: 9999px; }
+  </style>
+</head>
+<body class="bg-slate-50 dark:bg-[#080d1a] text-slate-900 dark:text-slate-100 font-sans antialiased">
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed top-16 right-4 z-[95] flex flex-col gap-2 max-w-xs"></div>
+
+  <!-- Onboarding / Tour Modal -->
+  <div id="onboarding-modal" class="fixed inset-0 z-[90] hidden bg-[#060B19]/90 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
+    <div class="w-full max-w-xl rounded-3xl bg-white dark:bg-[#0d1425] border border-cyan-500/30 p-6 space-y-5 shadow-2xl" id="onboarding-content"></div>
+  </div>
+
+  <!-- Diagram Zoom Modal -->
+  <div id="zoom-modal" class="fixed inset-0 z-[90] hidden bg-[#060B19]/90 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this) closeZoomModal()">
+    <div class="w-full max-w-2xl rounded-3xl bg-[#0d1425] border border-slate-800 p-5 space-y-4">
+      <div class="flex items-center justify-between">
+        <h3 id="zoom-modal-title" class="text-sm font-extrabold text-cyan-400">Diagram View</h3>
+        <button onclick="closeZoomModal()" class="p-2 rounded-full bg-slate-800/80 text-slate-300 hover:text-white">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+      <div id="zoom-modal-body"></div>
+      <p id="zoom-modal-caption" class="text-xs text-slate-400 text-center"></p>
+    </div>
+  </div>
+
+  <!-- Highlight Deep-Dive Modal -->
+  <div id="highlight-modal" class="fixed inset-0 z-[90] hidden bg-[#060B19]/85 backdrop-blur-sm flex items-center justify-center p-4" onclick="if(event.target===this) closeHighlightModal()">
+    <div class="w-full max-w-lg rounded-3xl bg-[#0d1425] border border-amber-500/40 p-6 space-y-4 shadow-2xl" id="highlight-modal-body"></div>
+  </div>
+
+  <!-- Layout -->
+  <div class="min-h-screen flex flex-col lg:flex-row">
+    <!-- Backdrop -->
+    <div id="sidebar-backdrop" onclick="toggleMobileSidebar(false)" class="fixed inset-0 z-40 bg-black/75 hidden lg:hidden"></div>
+
+    <!-- Navigation Drawer -->
+    <aside id="app-sidebar" class="fixed lg:static inset-y-0 left-0 z-50 w-72 transform -translate-x-full lg:translate-x-0 transition-transform duration-200 bg-white dark:bg-[#0a101f] border-r border-slate-200 dark:border-slate-800/80 flex flex-col shrink-0">
+      <div class="p-4 border-b border-slate-200 dark:border-slate-800/80 flex items-center justify-between">
+        <div class="flex items-center gap-3 cursor-pointer" onclick="navigateTo('tutor')">
+          <div class="w-10 h-10 rounded-full bg-gradient-to-br from-cyan-400 to-indigo-500 flex items-center justify-center text-[#080d1a] font-black text-lg shadow-md">
+            Φ
+          </div>
+          <div>
+            <h1 class="font-black text-sm tracking-wide text-slate-900 dark:text-white">PHYSIX AI</h1>
+            <p class="text-[10px] font-bold tracking-widest text-slate-500 dark:text-slate-400 uppercase">Physics Assistant</p>
+          </div>
+        </div>
+        <button onclick="toggleMobileSidebar(false)" class="lg:hidden w-8 h-8 rounded-full border border-cyan-500/40 flex items-center justify-center text-cyan-400">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <nav id="sidebar-nav" class="flex-1 overflow-y-auto p-3.5 space-y-4"></nav>
+
+      <div class="p-3.5 border-t border-slate-200 dark:border-slate-800/80">
+        <button onclick="openOnboarding(0)" class="w-full p-3 rounded-2xl bg-slate-100 dark:bg-[#11192e] border border-slate-200 dark:border-slate-800 flex items-center gap-3 text-left">
+          <div class="w-8 h-8 rounded-full bg-cyan-500/15 text-cyan-400 flex items-center justify-center shrink-0">
+            <i data-lucide="compass" class="w-4 h-4"></i>
+          </div>
+          <div>
+            <p class="text-xs font-extrabold text-slate-900 dark:text-white">New here? Take the tour</p>
+            <p class="text-[10px] text-slate-400">60 seconds, shows every tool</p>
+          </div>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Main Area -->
+    <div class="flex-1 flex flex-col min-w-0">
+      <!-- Top Bar -->
+      <header class="sticky top-0 z-30 bg-white/95 dark:bg-[#080d1a]/95 backdrop-blur-md border-b border-slate-200 dark:border-slate-800/80 px-4 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <button onclick="toggleMobileSidebar(true)" class="lg:hidden p-2 rounded-xl text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800/60">
+            <i data-lucide="menu" class="w-5 h-5"></i>
+          </button>
+          <div onclick="navigateTo('tutor')" class="w-9 h-9 rounded-full bg-gradient-to-br from-cyan-400 to-indigo-500 flex items-center justify-center text-[#080d1a] font-black text-base cursor-pointer shadow">
+            Φ
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <button onclick="stopSpeech()" title="Mute / Stop Voice" class="p-2 rounded-full text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800">
+            <i data-lucide="bell-off" class="w-4 h-4"></i>
+          </button>
+          <button onclick="toggleTheme()" title="Toggle Theme" class="p-2 rounded-full text-slate-500 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800">
+            <i data-lucide="sun" class="w-4 h-4"></i>
+          </button>
+          <button id="header-avatar-btn" onclick="navigateTo('team')" title="Project Team" class="w-9 h-9 rounded-full bg-slate-200 dark:bg-[#1a233a] text-xs font-extrabold text-slate-800 dark:text-slate-200 flex items-center justify-center">
+            M
+          </button>
+        </div>
+      </header>
+
+      <!-- Dynamic View Container -->
+      <main id="main-content" class="flex-1 px-4 py-5 sm:px-6 max-w-2xl lg:max-w-4xl w-full mx-auto pb-12"></main>
+    </div>
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. STATE & STORAGE
+    // =========================================================================
+    const STORAGE_KEY = 'physix_ai_v7_state';
+    let currentView = 'tutor';
+
+    let appState = {
+      lang: 'en',
+      theme: 'dark',
+      studentName: 'Muhammad Taha Ghanghro',
+      studentClass: '10',
+      dailyGoalMin: 30,
+      studiedMin: 12,
+      streakDays: 1,
+      testScores: [],
+      notes: [
+        {
+          id: 'note_1',
+          title: 'Ch 10: General Wave Properties',
+          chapter: 'General Wave Properties',
+          cls: '10',
+          tag: 'Note',
+          content: 'A wave is a disturbance in a medium which travels from one place to another and carries energy (v = f * lambda).',
+          date: '2026-11-22'
+        },
+        {
+          id: 'note_2',
+          title: 'Ch 15: Ohm’s Law & Series Circuits',
+          chapter: 'Current Electricity',
+          cls: '10',
+          tag: 'Summary',
+          content: 'Current is directly proportional to potential difference at constant temperature: V = I * R.',
+          date: '2026-11-22'
+        }
+      ],
+      studySchedule: [
+        { id: 101, day: 'Sun 22 Nov', time: '04:00 PM - 05:00 PM', topic: 'Ch 10: General Wave Properties (STBB Class 10)', done: false },
+        { id: 102, day: 'Sun 22 Nov', time: '05:30 PM - 06:15 PM', topic: 'Ch 13: Geometrical Optics Numericals', done: false }
+      ],
+      reminders: [
+        { id: 1, title: "Revise Ohm's law", time: '5:00 PM', freq: 'Daily' },
+        { id: 2, title: 'Physics Chapter 10 Practice Test', time: '7:00 PM', freq: 'Once' }
+      ]
+    };
+
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) appState = { ...appState, ...JSON.parse(saved) };
+    } catch (e) {}
+
+    function saveState() {
+      try { localStorage.setItem(STORAGE_KEY, JSON.stringify(appState)); } catch (e) {}
+    }
+
+    // =========================================================================
+    // 2. COMPLETE SINDH TEXTBOOK BOARD CLASS 9 & 10 SYLLABUS
+    // =========================================================================
+    const PHYSICS_CHAPTERS = {
+      '9': [
+        { num: 1, name: 'Physical Quantities and Measurement', topics: ['Vernier Calipers & Screw Gauge', 'Physical Quantities & SI Units', 'Significant Figures', 'Scientific Notation'] },
+        { num: 2, name: 'Kinematics', topics: ['Equations of Motion', 'Distance vs Displacement', 'Speed, Velocity & Acceleration', 'Free Fall Motion'] },
+        { num: 3, name: 'Dynamics', topics: ["Newton's Laws of Motion", 'Mass vs Weight', 'Momentum & Conservation', 'Friction & Centripetal Force'] },
+        { num: 4, name: 'Turning Effect of Forces', topics: ['Torque (Moment of Force)', 'Centre of Gravity', 'Conditions of Equilibrium', 'Resolution of Forces'] },
+        { num: 5, name: 'Forces and Matter', topics: ["Hooke's Law & Elasticity", 'Pressure in Liquids', "Pascal's Law", 'Atmospheric Pressure'] },
+        { num: 6, name: 'Gravitation', topics: ["Newton's Law of Gravitation", 'Mass of Earth', 'Variation of g with Altitude', 'Artificial Satellites'] },
+        { num: 7, name: 'Properties of Matter', topics: ['States of Matter & Kinetic Theory', 'Density & Pressure', "Archimedes' Principle", 'Principle of Flotation'] },
+        { num: 8, name: 'Energy Sources and Transfer of Energy', topics: ['Work & Power', 'Kinetic & Potential Energy', 'Law of Conservation of Energy', 'Renewable Energy Sources'] },
+        { num: 9, name: 'Thermal Properties of Matter', topics: ['Heat & Temperature', 'Specific Heat Capacity', 'Latent Heat of Fusion & Vaporization', 'Thermal Expansion'] }
+      ],
+      '10': [
+        { num: 10, name: 'General Wave Properties', topics: ['What is a wave', 'Transverse & Longitudinal Waves', 'Wave Speed Formula (v = fλ)', 'Reflection, Refraction & Diffraction'] },
+        { num: 11, name: 'Sound', topics: ['Nature & Speed of Sound', 'Loudness, Pitch & Quality', 'Echo & Ultrasound', 'Noise Pollution & Acoustics'] },
+        { num: 12, name: 'Electromagnetic Spectrum', topics: ['Dispersion of Light', 'Electromagnetic Waves', 'Radio, X-Rays & Gamma Rays', 'Applications of EM Spectrum'] },
+        { num: 13, name: 'Geometrical Optics', topics: ['Why does a lens focus light?', 'Convex & Concave Lenses', 'Mirror & Lens Formula', 'Total Internal Reflection'] },
+        { num: 14, name: 'Electrostatics', topics: ["Explain Coulomb's law with a diagram", 'Electric Field & Intensity', 'Electrostatic Induction', 'Capacitors & Capacitance'] },
+        { num: 15, name: 'Current Electricity', topics: ["How does Ohm's law work in a series circuit?", 'Series & Parallel Resistors', 'EMF & Potential Difference', 'Electric Power & Joule Law'] },
+        { num: 16, name: 'Electromagnetism', topics: ['Magnetic Field of Current', 'Force on Current-Carrying Conductor', 'DC Motor & AC Generator', 'Transformer & Mutual Induction'] },
+        { num: 17, name: 'Introductory Electronics', topics: ['Thermionic Emission & CRO', 'Analogue vs Digital Electronics', 'Logic Gates (AND, OR, NOT, NAND, NOR)', 'Truth Tables'] },
+        { num: 18, name: 'Information and Communication Technology', topics: ['Components of ICT', 'Optical Fiber & Radio Transmission', 'Internet & Data Storage', 'Cyber Safety'] },
+        { num: 19, name: 'Atomic Structure & Nuclear Physics', topics: ['Atom & Atomic Nucleus', 'Natural Radioactivity (α, β, γ)', 'Half-Life & Radioisotopes', 'Nuclear Fission & Fusion'] }
+      ]
+    };
+
+    // =========================================================================
+    // 3. CRISP 2D VECTOR DIAGRAMS LIBRARY
+    // =========================================================================
+    const DIAGRAM_LIBRARY = {
+      wave_motion: {
+        id: 'wave_motion',
+        header: 'UNDERSTANDING WAVES',
+        caption: 'The diagram displays a wavy line where the highest parts are crests, the lowest are troughs, and the distance between two crests is the wavelength.',
+        svg: `
+          <svg viewBox="0 0 360 155" class="w-full h-auto rounded-xl bg-[#070c18]">
+            <line x1="20" y1="80" x2="340" y2="80" stroke="#475569" stroke-width="1.2" stroke-dasharray="4 4"/>
+            <path d="M 30 80 Q 60 22, 90 80 T 150 80 T 210 80 T 270 80 T 330 80" fill="none" stroke="#22d3ee" stroke-width="2.6"/>
+            <line x1="90" y1="80" x2="90" y2="48" stroke="#a855f7" stroke-width="2"/>
+            <polygon points="90,42 86,50 94,50" fill="#a855f7"/>
+            <text x="82" y="34" fill="#e2e8f0" font-size="9" font-weight="700">crest</text>
+            <text x="97" y="68" fill="#c084fc" font-size="8.5" font-weight="600">amplitude a</text>
+            <text x="255" y="28" fill="#cbd5e1" font-size="9" font-family="monospace">v = f λ</text>
+            <text x="200" y="122" fill="#e2e8f0" font-size="9" font-weight="700">trough</text>
+            <line x1="30" y1="134" x2="150" y2="134" stroke="#cbd5e1" stroke-width="1.3"/>
+            <line x1="30" y1="129" x2="30" y2="139" stroke="#cbd5e1" stroke-width="1.3"/>
+            <line x1="150" y1="129" x2="150" y2="139" stroke="#cbd5e1" stroke-width="1.3"/>
+            <text x="64" y="146" fill="#94a3b8" font-size="8.5" font-weight="600">wavelength λ</text>
+          </svg>
+        `
+      },
+      pendulum_shm: {
+        id: 'pendulum_shm',
+        header: 'UNDERSTANDING THE SIMPLE PENDULUM',
+        caption: 'The diagram shows a bob hanging from a string of length L. When moved by an angle, it swings, demonstrating harmonic motion.',
+        svg: `
+          <svg viewBox="0 0 360 175" class="w-full h-auto rounded-xl bg-[#070c18]">
+            <line x1="120" y1="18" x2="240" y2="18" stroke="#64748b" stroke-width="3"/>
+            <text x="172" y="13" fill="#94a3b8" font-size="8.5" font-weight="700">pivot</text>
+            <line x1="180" y1="18" x2="180" y2="145" stroke="#475569" stroke-width="1.2" stroke-dasharray="4 4"/>
+            <path d="M 135 128 A 115 115 0 0 0 228 122" fill="none" stroke="#475569" stroke-width="1.2" stroke-dasharray="3 3"/>
+            <line x1="180" y1="18" x2="228" y2="122" stroke="#22d3ee" stroke-width="2"/>
+            <path d="M 180 48 A 30 30 0 0 0 193 45" fill="none" stroke="#a855f7" stroke-width="1.5"/>
+            <text x="187" y="58" fill="#c084fc" font-size="9" font-weight="700">θ</text>
+            <text x="210" y="72" fill="#38bdf8" font-size="9.5" font-weight="700">L</text>
+            <circle cx="228" cy="122" r="10" fill="#818cf8" stroke="#c7d2fe" stroke-width="1.5"/>
+            <text x="243" y="125" fill="#e2e8f0" font-size="9" font-weight="700">bob, mass m</text>
+            <line x1="180" y1="136" x2="225" y2="136" stroke="#cbd5e1" stroke-width="1.2"/>
+            <text x="198" y="147" fill="#cbd5e1" font-size="8.5">x</text>
+            <text x="150" y="160" fill="#94a3b8" font-size="8.5">mean position</text>
+            <line x1="228" y1="133" x2="228" y2="162" stroke="#22d3ee" stroke-width="1.6"/>
+            <polygon points="228,167 224,159 232,159" fill="#22d3ee"/>
+            <text x="234" y="163" fill="#38bdf8" font-size="9" font-weight="700">mg</text>
+          </svg>
+        `
+      },
+      coulomb_law: {
+        id: 'coulomb_law',
+        header: "COULOMB'S LAW — ELECTROSTATIC FORCE",
+        caption: 'Two point charges q1 and q2 separated by distance r exert equal and opposite electrostatic forces F along the line joining them.',
+        svg: `
+          <svg viewBox="0 0 360 150" class="w-full h-auto rounded-xl bg-[#070c18]">
+            <line x1="40" y1="75" x2="105" y2="75" stroke="#22d3ee" stroke-width="2"/>
+            <polygon points="34,75 44,70 44,80" fill="#22d3ee"/>
+            <text x="48" y="64" fill="#38bdf8" font-size="9.5" font-weight="700">F12</text>
+            <circle cx="122" cy="75" r="18" fill="#0ea5e9" fill-opacity="0.25" stroke="#38bdf8" stroke-width="2"/>
+            <text x="111" y="79" fill="#e0f2fe" font-size="10" font-weight="800">+q1</text>
+            <line x1="142" y1="75" x2="218" y2="75" stroke="#64748b" stroke-width="1.4" stroke-dasharray="4 4"/>
+            <text x="176" y="67" fill="#cbd5e1" font-size="9.5" font-weight="700">r</text>
+            <circle cx="238" cy="75" r="18" fill="#a855f7" fill-opacity="0.25" stroke="#c084fc" stroke-width="2"/>
+            <text x="227" y="79" fill="#f3e8ff" font-size="10" font-weight="800">+q2</text>
+            <line x1="256" y1="75" x2="320" y2="75" stroke="#22d3ee" stroke-width="2"/>
+            <polygon points="326,75 316,70 316,80" fill="#22d3ee"/>
+            <text x="284" y="64" fill="#38bdf8" font-size="9.5" font-weight="700">F21</text>
+            <text x="120" y="132" fill="#94a3b8" font-size="9" font-family="monospace">F = k · q1 · q2 / r²</text>
+          </svg>
+        `
+      },
+      ohms_law: {
+        id: 'ohms_law',
+        header: "OHM'S LAW & SERIES CIRCUIT",
+        caption: 'Current I flows from positive terminal through resistors R1 and R2 in series; total resistance R = R1 + R2.',
+        svg: `
+          <svg viewBox="0 0 360 155" class="w-full h-auto rounded-xl bg-[#070c18]">
+            <rect x="65" y="34" width="230" height="88" rx="10" fill="none" stroke="#38bdf8" stroke-width="1.8"/>
+            <rect x="52" y="62" width="26" height="32" fill="#070c18"/>
+            <line x1="56" y1="72" x2="74" y2="72" stroke="#22d3ee" stroke-width="2.6"/>
+            <line x1="60" y1="84" x2="70" y2="84" stroke="#94a3b8" stroke-width="2"/>
+            <text x="26" y="81" fill="#e2e8f0" font-size="9.5" font-weight="700">V (12V)</text>
+            <rect x="120" y="25" width="46" height="18" rx="4" fill="#1e293b" stroke="#38bdf8" stroke-width="1.5"/>
+            <text x="135" y="37" fill="#38bdf8" font-size="8.5" font-weight="700">R1</text>
+            <rect x="205" y="25" width="46" height="18" rx="4" fill="#1e293b" stroke="#a855f7" stroke-width="1.5"/>
+            <text x="220" y="37" fill="#c084fc" font-size="8.5" font-weight="700">R2</text>
+            <text x="152" y="140" fill="#94a3b8" font-size="9" font-family="monospace">V = I × (R1 + R2)</text>
+          </svg>
+        `
+      },
+      convex_lens: {
+        id: 'convex_lens',
+        header: 'CONVEX LENS RAY DIAGRAM',
+        caption: 'Parallel rays refracting through a convex lens converge at the principal focus F at focal length f.',
+        svg: `
+          <svg viewBox="0 0 360 155" class="w-full h-auto rounded-xl bg-[#070c18]">
+            <line x1="20" y1="78" x2="340" y2="78" stroke="#475569" stroke-width="1.2" stroke-dasharray="4 4"/>
+            <ellipse cx="180" cy="78" rx="12" ry="54" fill="#38bdf8" fill-opacity="0.2" stroke="#38bdf8" stroke-width="2"/>
+            <line x1="40" y1="48" x2="180" y2="48" stroke="#22d3ee" stroke-width="1.8"/>
+            <line x1="180" y1="48" x2="295" y2="95" stroke="#22d3ee" stroke-width="1.8"/>
+            <line x1="40" y1="108" x2="180" y2="108" stroke="#22d3ee" stroke-width="1.8"/>
+            <line x1="180" y1="108" x2="295" y2="61" stroke="#22d3ee" stroke-width="1.8"/>
+            <circle cx="253" cy="78" r="3.5" fill="#f59e0b"/>
+            <text x="249" y="68" fill="#fbbf24" font-size="9.5" font-weight="800">F</text>
+            <text x="145" y="145" fill="#94a3b8" font-size="9" font-family="monospace">1/f = 1/p + 1/q</text>
+          </svg>
+        `
+      },
+      forces_dynamics: {
+        id: 'forces_dynamics',
+        header: 'FORCES ON A BODY — MASS VS WEIGHT',
+        caption: 'Normal force N balances weight W = mg vertically, while applied force F overcomes friction f horizontally.',
+        svg: `
+          <svg viewBox="0 0 360 155" class="w-full h-auto rounded-xl bg-[#070c18]">
+            <line x1="30" y1="108" x2="330" y2="108" stroke="#475569" stroke-width="1.5"/>
+            <rect x="145" y="64" width="70" height="44" rx="6" fill="#1e293b" stroke="#38bdf8" stroke-width="1.8"/>
+            <text x="163" y="90" fill="#e2e8f0" font-size="9.5" font-weight="700">m = 5 kg</text>
+            <line x1="180" y1="64" x2="180" y2="24" stroke="#38bdf8" stroke-width="2"/>
+            <polygon points="180,18 176,26 184,26" fill="#38bdf8"/>
+            <text x="188" y="30" fill="#38bdf8" font-size="9" font-weight="700">N normal</text>
+            <line x1="180" y1="108" x2="180" y2="142" stroke="#c084fc" stroke-width="2"/>
+            <polygon points="180,148 176,140 184,140" fill="#c084fc"/>
+            <text x="188" y="144" fill="#c084fc" font-size="9" font-weight="700">W = mg</text>
+            <line x1="215" y1="86" x2="285" y2="86" stroke="#22d3ee" stroke-width="2"/>
+            <polygon points="291,86 283,82 283,90" fill="#22d3ee"/>
+            <text x="242" y="78" fill="#22d3ee" font-size="9" font-weight="700">F applied</text>
+            <line x1="145" y1="86" x2="80" y2="86" stroke="#f472b6" stroke-width="2"/>
+            <polygon points="74,86 82,82 82,90" fill="#f472b6"/>
+            <text x="84" y="78" fill="#f472b6" font-size="9" font-weight="700">friction f</text>
+          </svg>
+        `
+      },
+      bar_magnet: {
+        id: 'bar_magnet',
+        header: 'MAGNETIC FIELD OF A BAR MAGNET',
+        caption: 'Field lines leave the North pole and enter the South pole; closer lines near the poles show stronger magnetic field.',
+        svg: `
+          <svg viewBox="0 0 360 155" class="w-full h-auto rounded-xl bg-[#070c18]">
+            <ellipse cx="180" cy="78" rx="115" ry="48" fill="none" stroke="#38bdf8" stroke-width="1.3"/>
+            <ellipse cx="180" cy="78" rx="82" ry="30" fill="none" stroke="#38bdf8" stroke-width="1.3"/>
+            <rect x="135" y="66" width="45" height="24" rx="3" fill="#6366f1"/>
+            <rect x="180" y="66" width="45" height="24" rx="3" fill="#475569"/>
+            <text x="153" y="82" fill="#fff" font-size="10" font-weight="800">N</text>
+            <text x="198" y="82" fill="#fff" font-size="10" font-weight="800">S</text>
+            <text x="72" y="24" fill="#94a3b8" font-size="8.5">Field lines run N → S outside the magnet</text>
+          </svg>
+        `
+      }
+    };
+
+    // =========================================================================
+    // 4. AI PHYSICS TUTOR LOGIC & VIEW
+    // =========================================================================
+    let tutorState = {
+      mode: 'Complete',
+      showChaptersDrawer: false,
+      selectedClass: '10',
+      askedQuestion: '',
+      isThinking: false,
+      highlightsEnabled: true,
+      importantOnly: false,
+      examOnly: false,
+      speechRate: 1,
+      lesson: null
+    };
+
+    function buildDetailedLesson(question) {
+      const q = (question || '').toLowerCase();
+
+      if (q.includes('pendulum') || q.includes('harmonic') || q.includes('shm') || q.includes('oscillat')) {
+        return {
+          title: 'Understanding the Simple Pendulum',
+          intro: 'A simple pendulum is a small heavy bob suspended by a light inextensible string from a rigid support. This topic is covered in Class 10, Chapter 10 General Wave Properties & SHM.',
+          mainPoint: 'A simple pendulum consists of a small heavy object called a bob suspended from a fixed point by a string.',
+          simpleLine: 'A pendulum is just a heavy ball hanging from a string that can swing back and forth.',
+          exampleLine: 'A swing in a local park or a wall clock pendulum.',
+          examNote: 'This is the fundamental definition required for Sindh Board exam questions about oscillating systems.',
+          diagramKey: 'pendulum_shm',
+          steps: [
+            { num: 1, heading: 'The Setup', body: 'Attach a small metal sphere to a light, non-stretchable string. Fix the other end of the string to a rigid support so it can swing freely.' },
+            { num: 2, heading: 'Oscillation', body: 'When you pull the bob slightly to one side and release it, it swings back and forth around its mean position.' },
+            { num: 3, heading: 'Time Period', body: 'The time it takes for the pendulum to complete one full round trip is called the Time Period (T). It depends on length L and gravity g.' }
+          ],
+          formula: 'T = 2 * pi * sqrt( l / g )',
+          dailyLife: 'Daily life: A classic wall clock in an old house that ticks rhythmically uses a pendulum to keep time.',
+          importantPoints: [
+            { tag: 'FORMULA', color: 'indigo', text: 'T = 2π√(L/g) — Time period is independent of the mass of the bob.' },
+            { tag: 'EXAM POINT', color: 'emerald', text: 'If length L becomes four times, the time period T doubles.' }
+          ],
+          translations: {
+            ur: 'سادہ پینڈولم ایک چھوٹے بھاری گولے (باب) پر مشتمل ہوتا ہے جو ایک ہلکی ڈوری کے ذریعے مضبوط سہارے سے لٹکا ہوتا ہے۔ اس کا ٹائم پیریڈ ڈوری کی لمبائی پر منحصر ہوتا ہے۔',
+            sd: 'سادو پينڊولم ھڪ ننڍي ڳري گولي (باب) تي مشتمل ھوندو آھي جيڪو ھڪ ھلڪي ڌاڳي سان مضبوط سھاري سان لٽڪيل ھوندو آھي.',
+            roman: 'Simple pendulum ek chhotay bhaari bob par mushtamil hota hai jo ek halki dori se rigid support ke sath latka hota hai. Iska time period T = 2π√(L/g) hota hai.'
+          }
+        };
+      }
+
+      if (q.includes('coulomb') || q.includes('charge') || q.includes('electrostatic')) {
+        return {
+          title: "Understanding Coulomb's Law",
+          intro: "Coulomb's Law explains the electrostatic force of attraction or repulsion between two stationary point charges. Covered in Class 10, Chapter 14 Electrostatics.",
+          mainPoint: 'The force of attraction or repulsion between two point charges is directly proportional to the product of their charges and inversely proportional to the square of the distance between them.',
+          simpleLine: 'Like charges push each other away and opposite charges pull together; closer charges feel a much stronger force.',
+          exampleLine: 'A plastic comb rubbed on dry hair attracting tiny bits of paper.',
+          examNote: 'Always write both proportionality statements and the value of constant k = 9 × 10⁹ N·m²/C² in board exams.',
+          diagramKey: 'coulomb_law',
+          steps: [
+            { num: 1, heading: 'Two Point Charges', body: 'Consider two stationary point charges q1 and q2 separated by a distance r in air or vacuum.' },
+            { num: 2, heading: 'Force & Distance Relation', body: 'Doubling the charge doubles the force, while doubling the distance reduces the force to one-fourth (1/r²).' },
+            { num: 3, heading: 'Mathematical Form', body: 'Combining both relations gives F = k·q1·q2 / r², where k = 9 × 10⁹ N·m²/C².' }
+          ],
+          formula: 'F = k * q1 * q2 / r^2',
+          dailyLife: 'Daily life: Static electricity on a dry winter day when your clothes crackle or stick together.',
+          importantPoints: [
+            { tag: 'DEFINITION', color: 'cyan', text: 'SI unit of electric charge is Coulomb (C).' },
+            { tag: 'FORMULA', color: 'indigo', text: 'F = k · q1 · q2 / r²' }
+          ],
+          translations: {
+            ur: 'کولمب کے قانون کے مطابق دو ساکن چارجز کے درمیان کشش یا دفع کی قوت ان چارجز کے حاصل ضرب کے راست متناسب اور ان کے درمیانی فاصلے کے مربع کے معکوس متناسب ہوتی ہے۔',
+            sd: 'ڪولمب جي قانون موجب ٻن چارجن جي وچ ۾ قوت انھن جي مقدارن جي ضرب جي سڌي متناسب ۽ فاصلي جي چورس جي ابتڙ متناسب ھوندي آھي.',
+            roman: 'Coulomb ke law ke mutabiq do point charges ke darmiyan force unke charges ke product ke directly proportional aur distance ke square ke inversely proportional hoti hai.'
+          }
+        };
+      }
+
+      if (q.includes('ohm') || q.includes('circuit') || q.includes('current') || q.includes('resistor')) {
+        return {
+          title: "Understanding Ohm's Law in a Series Circuit",
+          intro: "Ohm's Law connects voltage, electric current, and resistance in an electrical circuit. Covered in Class 10, Chapter 15 Current Electricity.",
+          mainPoint: 'The electric current flowing through a conductor is directly proportional to the potential difference across its ends, provided physical conditions like temperature remain constant.',
+          simpleLine: 'Higher battery voltage pushes more current through a wire, while higher resistance slows the current down.',
+          exampleLine: 'Dimming or brightening a torch bulb by changing the battery cells.',
+          examNote: 'Mention "at constant temperature" in the definition to get full marks in Sindh Board exams.',
+          diagramKey: 'ohms_law',
+          steps: [
+            { num: 1, heading: 'Potential Difference (V)', body: 'A battery provides electrical pressure (voltage V in Volts) that pushes electrons around the closed loop.' },
+            { num: 2, heading: 'Series Resistors', body: 'In a series circuit, the same current I passes through every resistor, and total resistance adds up: R = R1 + R2.' },
+            { num: 3, heading: 'Calculating Current', body: 'Divide total battery voltage by total resistance using I = V / R to find current in Amperes.' }
+          ],
+          formula: 'V = I * R   |   R_total = R1 + R2',
+          dailyLife: 'Daily life: Decorative fairy lights wired in series go out if a single bulb breaks the path.',
+          importantPoints: [
+            { tag: 'FORMULA', color: 'indigo', text: 'V = I × R  (1 Ohm = 1 Volt / 1 Ampere)' },
+            { tag: 'EXAM POINT', color: 'emerald', text: 'In a series circuit, current stays same while voltage divides across resistors.' }
+          ],
+          translations: {
+            ur: 'اوہم کے قانون کے مطابق اگر درجہ حرارت مستقل رہے تو کسی موصل میں بہنے والا کرنٹ اس کے سروں کے درمیان پوٹینشل ڈفرنس کے راست متناسب ہوتا ہے: V = IR۔',
+            sd: 'اوھم جي قانون موجب مستقل گرمي پد تي ڪنھن موصل مان وھندڙ ڪرنٽ پوٽينشل ڊفرنس جي سڌي متناسب ھوندو آھي.',
+            roman: 'Ohm ke law ke mutabiq agar temperature constant rahe to conductor mein behne wala current voltage ke directly proportional hota hai: V = I * R.'
+          }
+        };
+      }
+
+      if (q.includes('lens') || q.includes('focus') || q.includes('light') || q.includes('optic') || q.includes('mirror')) {
+        return {
+          title: 'Why a Convex Lens Focuses Light',
+          intro: 'A convex lens is thicker in the middle and bends parallel rays of light inward toward a single focal point. Covered in Class 10, Chapter 13 Geometrical Optics.',
+          mainPoint: 'When parallel rays of light pass through a convex lens, refraction at both curved surfaces bends the rays toward the principal axis so they meet at the principal focus F.',
+          simpleLine: 'Glass slows light down; because a convex lens is curved, outer rays bend inward and meet at one bright spot.',
+          exampleLine: 'Using a magnifying glass in sunlight to focus sunrays onto a tiny bright dot.',
+          examNote: 'Draw arrowheads on all incident and refracted rays in your board exam diagram.',
+          diagramKey: 'convex_lens',
+          steps: [
+            { num: 1, heading: 'Refraction of Light', body: 'Light travels slower in glass than in air, so rays bend whenever they enter or exit the curved lens at an angle.' },
+            { num: 2, heading: 'Converging Action', body: 'The upper and lower halves of a convex lens act like prisms whose bases face the center, bending light inward.' },
+            { num: 3, heading: 'Principal Focus (F)', body: 'All parallel rays converge at the principal focus F at focal length f from the optical center.' }
+          ],
+          formula: '1 / f = 1 / p + 1 / q',
+          dailyLife: 'Daily life: Human eyes, cameras, and eyeglasses for farsightedness use convex lenses to focus sharp images.',
+          importantPoints: [
+            { tag: 'DEFINITION', color: 'cyan', text: 'Power of a lens P = 1 / f (in meters), measured in Dioptres (D).' },
+            { tag: 'FORMULA', color: 'indigo', text: '1/f = 1/p + 1/q' }
+          ],
+          translations: {
+            ur: 'محدب عدسہ (Convex Lens) درمیان سے موٹا ہوتا ہے اور متوازی روشنی کی شعاعوں کو موڑ کر ایک نقطہ ماسکہ (Focus F) پر مرکوز کر دیتا ہے۔',
+            sd: 'محدب عدسو (Convex Lens) وچان ٿلھو ھوندو آھي ۽ روشنيءَ جي متوازي ڪرڻن کي موڙي ھڪ نقطي F تي گڏ ڪندو آھي.',
+            roman: 'Convex lens darmiyan se mota hota hai aur parallel light rays ko refract karke ek single point Principal Focus F par jama kar deta hai.'
+          }
+        };
+      }
+
+      if (q.includes('mass') || q.includes('weight') || q.includes('newton') || q.includes('force') || q.includes('gravity')) {
+        return {
+          title: 'Difference Between Mass and Weight',
+          intro: 'Although used interchangeably in everyday speech, mass and weight are two distinct physical quantities in Class 9 Physics (Chapter 3 Dynamics).',
+          mainPoint: 'Mass is the quantity of matter contained in a body (constant everywhere, measured in kg), whereas Weight is the gravitational force acting on that body (W = mg, measured in Newtons).',
+          simpleLine: 'Your mass stays the same on Earth and the Moon, but your weight becomes 6 times lighter on the Moon.',
+          exampleLine: 'An astronaut has a mass of 60 kg everywhere, weighing 600 N on Earth but only 100 N on the Moon.',
+          examNote: 'Write at least 4 tabular differences (Definition, Scalar/Vector, SI Unit, Measuring Instrument) for full marks.',
+          diagramKey: 'forces_dynamics',
+          steps: [
+            { num: 1, heading: 'Mass (Scalar)', body: 'Mass measures inertia and amount of matter. Its SI unit is kilogram (kg) and it is measured with a beam balance.' },
+            { num: 2, heading: 'Weight (Vector)', body: 'Weight is the downward pull of gravity: W = m × g. Its SI unit is Newton (N) and it is measured with a spring balance.' },
+            { num: 3, heading: 'Effect of Location', body: 'Because gravity g changes with altitude and planet, weight varies from place to place while mass never changes.' }
+          ],
+          formula: 'W = m * g   (g = 9.8 m/s² on Earth)',
+          dailyLife: 'Daily life: A digital bathroom scale actually measures the downward gravitational force (weight) and divides by g to show kg.',
+          importantPoints: [
+            { tag: 'DEFINITION', color: 'cyan', text: 'Mass is a scalar quantity (kg); Weight is a vector quantity (N).' },
+            { tag: 'FORMULA', color: 'indigo', text: 'W = m × g' }
+          ],
+          translations: {
+            ur: 'کمیت (Mass) کسی جسم میں مادے کی مقدار ہے جو ہر جگہ مستقل رہتی ہے (اکائی کلوگرام)، جبکہ وزن (Weight) زمین کی کشش ثقل کی قوت ہے W = mg (اکائی نیوٹن)۔',
+            sd: 'ڪميت (Mass) جسم ۾ مادي جو مقدار آھي جيڪو ھر ھنڌ ساڳيو رھي ٿو، جڏھن تہ وزن (Weight) ڪشش ثقل جي قوت آھي W = mg.',
+            roman: 'Mass kisi body mein matter ki miqdar hai jo har jagah constant rehti hai (kg), jabke Weight gravity ki force hai W = mg (Newton).'
+          }
+        };
+      }
+
+      if (q.includes('magnet') || q.includes('electromagnet') || q.includes('motor')) {
+        return {
+          title: 'Understanding Magnetic Field & Electromagnetism',
+          intro: 'A magnetic field is the region around a magnet or current-carrying wire where magnetic force can be detected. Covered in Class 10, Chapter 16 Electromagnetism.',
+          mainPoint: 'Magnetic field lines form closed loops running from the North pole to the South pole outside a magnet, and never intersect each other.',
+          simpleLine: 'Invisible magnetic lines flow out of the North pole and curve around into the South pole.',
+          exampleLine: 'A magnetic compass needle always aligns along Earth’s magnetic field lines.',
+          examNote: 'Explain why two magnetic field lines never cross each other (otherwise a compass would point in two directions at once).',
+          diagramKey: 'bar_magnet',
+          steps: [
+            { num: 1, heading: 'Magnetic Poles', body: 'Every magnet has two poles: North (N) and South (S). Like poles repel and unlike poles attract.' },
+            { num: 2, heading: 'Field Strength', body: 'Where magnetic field lines are crowded near the poles, the magnetic field is strongest.' },
+            { num: 3, heading: 'Current & Magnetism', body: 'Passing electric current through a wire creates a circular magnetic field around it (Oersted’s discovery).' }
+          ],
+          formula: 'F = I * L * B * sin(θ)',
+          dailyLife: 'Daily life: Electric fans, speakers, and doorbells work using electromagnets.',
+          importantPoints: [
+            { tag: 'DEFINITION', color: 'cyan', text: 'SI unit of magnetic field strength B is Tesla (T).' },
+            { tag: 'FORMULA', color: 'indigo', text: 'F = I L B sin(θ)' }
+          ],
+          translations: {
+            ur: 'مقناطیسی میدان کسی مقناطیس کے گرد وہ علاقہ ہے جہاں مقناطیسی قوت محسوس کی جا سکے۔ مقناطیسی خطوط شمالی قطب سے نکل کر جنوبی قطب میں داخل ہوتے ہیں۔',
+            sd: 'مقناطيسي ميدان مقناطيس جي چوڌاري اھو علائقو آھي جتي مقناطيسي قوت محسوس ٿئي ٿي.',
+            roman: 'Magnetic field kisi magnet ke gird woh ilaaqa hai jahan magnetic force mehsoos hoti hai. Field lines North pole se South pole ki taraf jati hain.'
+          }
+        };
+      }
+
+      // Default: General Wave Properties
+      return {
+        title: 'Understanding Waves',
+        intro: 'A wave is a way that energy travels from one place to another without moving matter along with it. This topic is covered in Class 10, Chapter 10 General Wave Properties.',
+        mainPoint: 'A wave is a disturbance in a medium which travels from one place to another and carries energy.',
+        simpleLine: 'A wave is just a way to move energy around using vibrations.',
+        exampleLine: 'Sound traveling through air to your ear.',
+        examNote: 'This is the core concept of all wave motion in Sindh Board Class 10 Physics.',
+        diagramKey: 'wave_motion',
+        steps: [
+          { num: 1, heading: 'Seeing a Wave', body: 'When you drop a stone in a pond in your village, you see ripples moving outwards. The water particles only move up and down, but the energy of the ripple moves across the pond.' },
+          { num: 2, heading: 'Definition of a Wave', body: 'A wave is a disturbance in a medium which travels from one place to another and carries energy. In a transverse wave, the particles of the medium vibrate perpendicular to the direction of the wave.' },
+          { num: 3, heading: 'Key Wave Parts', body: 'The high point of a wave is called a crest, and the low point is called a trough. The distance between two consecutive crests or troughs is called the wavelength, denoted by lambda (λ).' }
+        ],
+        formula: 'v = f * lambda',
+        dailyLife: 'Daily life: When you shake one end of a rope tied to a pillar, the wave travels to the pillar, but the rope itself stays in your hand.',
+        importantPoints: [
+          { tag: 'DEFINITION', color: 'cyan', text: 'The distance between two consecutive crests or troughs is called the wavelength.' },
+          { tag: 'FORMULA', color: 'indigo', text: 'v = f * lambda' }
+        ],
+        translations: {
+          ur: 'موج (Wave) کسی واسطے میں پیدا ہونے والا ایسا خلل ہے جو ایک جگہ سے دوسری جگہ سفر کرتا ہے اور توانائی منتقل کرتا ہے، جبکہ واسطے کے ذرات اپنی جگہ پر ارتعاش کرتے ہیں۔',
+          sd: 'لھر (Wave) ڪنھن واسطي ۾ پيدا ٿيندڙ اھا ھلچل آھي جيڪا ھڪ ھنڌ کان ٻئي ھنڌ توانائي منتقل ڪري ٿي.',
+          roman: 'Wave kisi medium mein paida hone wali disturbance hai jo ek jagah se doosri jagah travel karti hai aur energy carry karti hai (v = f × λ).'
+        }
+      };
+    }
+
+    function submitTutorQuestion(text) {
+      const q = (text || '').trim();
+      if (!q) {
+        showToast('Please enter a Physics question first.', 'error');
+        return;
+      }
+      tutorState.askedQuestion = q;
+      tutorState.isThinking = true;
+      tutorState.importantOnly = false;
+      tutorState.examOnly = false;
+      renderCurrentView();
+
+      setTimeout(() => {
+        const el = document.getElementById('tutor-thinking-anchor');
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 30);
+
+      setTimeout(() => {
+        tutorState.isThinking = false;
+        tutorState.lesson = buildDetailedLesson(q);
+        appState.studiedMin = (appState.studiedMin || 0) + 3;
+        saveState();
+        renderCurrentView();
+        setTimeout(() => {
+          const el = document.getElementById('tutor-answer-anchor');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 40);
+      }, 600);
+    }
+
+    function resetNewQuestion() {
+      tutorState.askedQuestion = '';
+      tutorState.isThinking = false;
+      tutorState.lesson = null;
+      tutorState.importantOnly = false;
+      tutorState.examOnly = false;
+      renderCurrentView();
+      setTimeout(() => {
+        const inp = document.getElementById('tutor-bottom-input');
+        if (inp) {
+          inp.value = '';
+          inp.focus();
+        }
+      }, 30);
+      showToast('Cleared! Ready for your new question.', 'info');
+    }
+
+    function openHighlightModal() {
+      if (!tutorState.lesson) return;
+      const l = tutorState.lesson;
+      const modal = document.getElementById('highlight-modal');
+      const body = document.getElementById('highlight-modal-body');
+      body.innerHTML = `
+        <div class="flex items-center justify-between">
+          <span class="text-[11px] font-black tracking-widest text-amber-400 uppercase">◎ MAIN POINT DEEP EXPLANATION</span>
+          <button onclick="closeHighlightModal()" class="p-1.5 rounded-full bg-slate-800 text-slate-300"><i data-lucide="x" class="w-4 h-4"></i></button>
+        </div>
+        <p class="text-sm font-bold text-white leading-relaxed">${l.mainPoint}</p>
+        <div class="p-3.5 rounded-2xl bg-[#090f1d] border border-slate-800 space-y-2 text-xs">
+          <p class="text-slate-300"><strong class="text-cyan-400">In simple words:</strong> ${l.simpleLine}</p>
+          <p class="text-slate-300"><strong class="text-amber-400">Everyday example:</strong> ${l.exampleLine}</p>
+          <p class="text-slate-300"><strong class="text-emerald-400">Sindh Board Exam Tip:</strong> ${l.examNote}</p>
+        </div>
+        <button onclick="saveCurrentLessonToNotes(); closeHighlightModal();" class="w-full py-2.5 rounded-full bg-amber-500/20 border border-amber-500/50 text-amber-300 text-xs font-extrabold">
+          Save Highlighted Point to My Notes
+        </button>
+      `;
+      modal.classList.remove('hidden');
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function closeHighlightModal() {
+      document.getElementById('highlight-modal').classList.add('hidden');
+    }
+
+    function saveCurrentLessonToNotes() {
+      if (!tutorState.lesson) return;
+      const l = tutorState.lesson;
+      appState.notes.unshift({
+        id: 'note_' + Date.now(),
+        title: l.title,
+        chapter: 'Class ' + tutorState.selectedClass + ' Physics',
+        cls: tutorState.selectedClass,
+        tag: 'Note',
+        content: `${l.mainPoint} | Formula: ${l.formula}`,
+        date: '2026-11-22'
+      });
+      saveState();
+      showToast('Saved to My Notes!', 'success');
+    }
+
+    function readLessonAloud() {
+      if (!tutorState.lesson) return;
+      if (!('speechSynthesis' in window)) {
+        showToast('Voice synthesis not supported in this browser.', 'error');
+        return;
+      }
+      window.speechSynthesis.cancel();
+      const l = tutorState.lesson;
+      const text = `${l.title}. ${l.mainPoint}. ${l.steps.map(s => s.heading + ': ' + s.body).join(' ')}`;
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.rate = tutorState.speechRate || 1;
+      window.speechSynthesis.speak(utter);
+      showToast(`Reading aloud at ${tutorState.speechRate}× speed`, 'info');
+    }
+
+    function stopSpeech() {
+      if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+      showToast('Voice stopped.', 'info');
+    }
+
+    function renderTutor(container) {
+      const lesson = tutorState.lesson;
+      const chaptersList = PHYSICS_CHAPTERS[tutorState.selectedClass] || PHYSICS_CHAPTERS['10'];
+      const diag = lesson ? (DIAGRAM_LIBRARY[lesson.diagramKey] || DIAGRAM_LIBRARY.wave_motion) : null;
+
+      container.innerHTML = `
+        <div class="space-y-4 ${tutorState.highlightsEnabled ? '' : 'hl-off'}">
+          <!-- Header -->
+          <div class="space-y-1.5 pt-1">
+            <p class="text-[11px] font-extrabold tracking-widest uppercase text-cyan-400">AI PHYSICS TUTOR</p>
+            <h1 class="text-3xl sm:text-4xl font-black tracking-tight text-slate-900 dark:text-white leading-tight">
+              Understand it, don’t memorise it
+            </h1>
+            <p class="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+              Every answer comes with a labelled diagram chosen for that topic — automatically.
+            </p>
+          </div>
+
+          <!-- Chapters & New Question Pills -->
+          <div class="flex flex-wrap items-center gap-2.5">
+            <button onclick="tutorState.showChaptersDrawer = !tutorState.showChaptersDrawer; renderCurrentView();"
+              class="px-4 py-2.5 rounded-full bg-white dark:bg-[#0d1425] border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 hover:border-cyan-500/50">
+              <i data-lucide="book-open" class="w-3.5 h-3.5 text-slate-400"></i> Chapters
+            </button>
+            <button onclick="resetNewQuestion()"
+              class="px-4 py-2.5 rounded-full bg-white dark:bg-[#0d1425] border border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2 hover:border-cyan-500/50">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-slate-400"></i> New question
+            </button>
+          </div>
+
+          <!-- Expandable Chapters Selector -->
+          ${tutorState.showChaptersDrawer ? `
+            <div class="p-4 rounded-2xl bg-white dark:bg-[#0d1425] border border-cyan-500/30 space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-extrabold uppercase tracking-wider text-cyan-400">SINDH BOARD SYLLABUS</span>
+                <div class="flex gap-1.5">
+                  <button onclick="tutorState.selectedClass='9'; renderCurrentView();" class="px-3 py-1 rounded-full text-xs font-bold ${tutorState.selectedClass==='9'?'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50':'bg-slate-800 text-slate-400'}">Class 9</button>
+                  <button onclick="tutorState.selectedClass='10'; renderCurrentView();" class="px-3 py-1 rounded-full text-xs font-bold ${tutorState.selectedClass==='10'?'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50':'bg-slate-800 text-slate-400'}">Class 10</button>
+                </div>
+              </div>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
+                ${chaptersList.map(ch => `
+                  <div class="p-2.5 rounded-xl bg-slate-50 dark:bg-[#090f1d] border border-slate-200 dark:border-slate-800">
+                    <p class="text-[11px] font-extrabold text-cyan-400 mb-1">Ch ${ch.num}: ${ch.name}</p>
+                    <div class="flex flex-wrap gap-1">
+                      ${ch.topics.map(tp => `
+                        <button onclick="tutorState.showChaptersDrawer=false; submitTutorQuestion('${tp.replace(/'/g, "\\'")}');"
+                          class="text-[10px] px-2 py-0.5 rounded-md bg-slate-200/70 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 hover:text-cyan-300 text-left">
+                          ${tp}
+                        </button>
+                      `).join('')}
+                    </div>
+                  </div>
+                `).join('')}
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- MODE & LANGUAGE CARD -->
+          <div class="p-4 rounded-2xl bg-white dark:bg-[#0d1425] border border-slate-200 dark:border-slate-800/90 space-y-4">
+            <div class="space-y-2">
+              <p class="text-[10px] font-extrabold tracking-widest uppercase text-slate-400">MODE</p>
+              <div class="space-y-2">
+                ${[
+                  { id: 'Complete', title: 'Complete', sub: 'Words + diagram' },
+                  { id: 'Text', title: 'Text', sub: 'Explanation only' },
+                  { id: 'Visual', title: 'Visual', sub: 'Diagram first' }
+                ].map(m => {
+                  const active = tutorState.mode === m.id;
+                  return `
+                    <button onclick="tutorState.mode='${m.id}'; renderCurrentView();"
+                      class="w-full px-4 py-3 rounded-xl text-left transition border ${active ? 'bg-cyan-500/10 border-cyan-500/60' : 'bg-slate-50 dark:bg-[#090f1d] border-slate-200 dark:border-slate-800/80 hover:border-slate-700'}">
+                      <p class="text-xs font-extrabold ${active ? 'text-cyan-300' : 'text-slate-800 dark:text-slate-100'}">${m.title}</p>
+                      <p class="text-[11px] text-slate-400">${m.sub}</p>
+                    </button>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+
+            <div class="space-y-2">
+              <p class="text-[10px] font-extrabold tracking-widest uppercase text-slate-400">LANGUAGE</p>
+              <div class="flex flex-wrap gap-2">
+                ${[
+                  { code: 'en', label: 'English' },
+                  { code: 'ur', label: 'Urdu' },
+                  { code: 'sd', label: 'Sindhi' },
+                  { code: 'roman', label: 'Roman Urdu' }
+                ].map(l => {
+                  const active = appState.lang === l.code;
+                  return `
+                    <button onclick="appState.lang='${l.code}'; saveState(); renderCurrentView();"
+                      class="px-3.5 py-1.5 rounded-full text-xs font-bold border transition ${active ? 'bg-cyan-500/15 border-cyan-500/60 text-cyan-300' : 'bg-slate-50 dark:bg-[#090f1d] border-slate-200 dark:border-slate-800 text-slate-400 hover:text-slate-200'}">
+                      ${l.label}
+                    </button>
+                  `;
+                }).join('')}
+              </div>
+            </div>
+          </div>
+
+          <!-- QUICK ACTIONS CARD -->
+          <div class="p-4 rounded-2xl bg-white dark:bg-[#0d1425] border border-slate-200 dark:border-slate-800/90 space-y-2.5">
+            <p class="text-[10px] font-extrabold tracking-widest uppercase text-slate-400">QUICK ACTIONS</p>
+            <div class="flex flex-wrap gap-2">
+              <button onclick="submitTutorQuestion(tutorState.askedQuestion || 'What is a wave')" class="px-3.5 py-1.5 rounded-full bg-slate-50 dark:bg-[#090f1d] border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-300 hover:border-cyan-500/40">Explain Simply</button>
+              <button onclick="appState.lang='ur'; saveState(); if(!tutorState.lesson) submitTutorQuestion('What is a wave'); else renderCurrentView();" class="px-3.5 py-1.5 rounded-full bg-slate-50 dark:bg-[#090f1d] border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-300 hover:border-cyan-500/40">Explain in Urdu</button>
+              <button onclick="tutorState.mode='Complete'; if(!tutorState.lesson) submitTutorQuestion('What is a wave'); else renderCurrentView();" class="px-3.5 py-1.5 rounded-full bg-slate-50 dark:bg-[#090f1d] border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-300 hover:border-cyan-500/40">Explain with a Diagram</button>
+              <button onclick="tutorState.mode='Visual'; if(!tutorState.lesson) submitTutorQuestion('What is a wave'); else renderCurrentView();" class="px-3.5 py-1.5 rounded-full bg-slate-50 dark:bg-[#090f1d] border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-300 hover:border-cyan-500/40">Show an Image</button>
+              <button onclick="open3DForCurrentTopic()" class="px-3.5 py-1.5 rounded-full bg-slate-50 dark:bg-[#090f1d] border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-300 hover:border-cyan-500/40">Animate This Concept</button>
+              <button onclick="if(!tutorState.lesson) submitTutorQuestion('What is a wave'); else showToast(tutorState.lesson.dailyLife, 'info');" class="px-3.5 py-1.5 rounded-full bg-slate-50 dark:bg-[#090f1d] border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-300 hover:border-cyan-500/40">Give a Daily-Life Example</button>
+              <button onclick="navigateTo('quiz')" class="px-3.5 py-1.5 rounded-full bg-slate-50 dark:bg-[#090f1d] border border-slate-200 dark:border-slate-800 text-xs font-semibold text-slate-300 hover:border-cyan-500/40">Test My Understanding</button>
+            </div>
+          </div>
+
+          <!-- STARTER / THINKING / ANSWER -->
+          ${tutorState.isThinking ? `
+            <div id="tutor-thinking-anchor" class="space-y-3 pt-1">
+              <div class="flex justify-end">
+                <div class="px-4 py-2 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 text-xs sm:text-sm font-bold text-cyan-100">
+                  ${tutorState.askedQuestion}
+                </div>
+              </div>
+              <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800 flex items-center gap-3">
+                <div class="w-5 h-5 rounded-full border-2 border-cyan-400 border-t-transparent animate-spin shrink-0"></div>
+                <p class="text-xs sm:text-sm text-slate-300 font-medium">Working out the explanation and choosing the best diagram...</p>
+              </div>
+            </div>
+          ` : !lesson ? `
+            <div class="p-5 rounded-2xl bg-white dark:bg-[#0d1425] border border-slate-200 dark:border-slate-800/90 space-y-4">
+              <div class="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400">
+                <i data-lucide="sparkles" class="w-5 h-5"></i>
+              </div>
+              <div class="space-y-1.5">
+                <h2 class="text-lg font-black text-slate-900 dark:text-white">What shall we work on?</h2>
+                <p class="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                  Ask in English, Urdu, Sindhi or Roman Urdu — any question, any topic. Answers are checked for accuracy first, then written in the easiest words with short steps and the diagram for that topic.
+                </p>
+              </div>
+              <div class="space-y-2">
+                ${[
+                  "Explain Coulomb's law with a diagram",
+                  "What is simple harmonic motion?",
+                  "Difference between mass and weight",
+                  "How does Ohm's law work in a series circuit?"
+                ].map(prompt => `
+                  <button onclick="submitTutorQuestion('${prompt.replace(/'/g, "\\'")}')"
+                    class="w-full px-4 py-2.5 rounded-full bg-slate-50 dark:bg-[#090f1d] border border-slate-200 dark:border-slate-800 hover:border-cyan-500/50 text-xs font-semibold text-slate-300 text-left transition">
+                    ${prompt}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          ` : `
+            <!-- User Question Bubble -->
+            <div id="tutor-answer-anchor" class="flex justify-end">
+              <div class="px-4 py-2.5 rounded-2xl bg-cyan-500/15 border border-cyan-500/30 text-xs sm:text-sm font-bold text-cyan-100">
+                ${tutorState.askedQuestion}
+              </div>
+            </div>
+
+            <!-- Main Tutor Answer Card -->
+            <div class="p-4 sm:p-5 rounded-3xl bg-white dark:bg-[#0d1425] border border-slate-200 dark:border-slate-800/90 space-y-4">
+              <div class="space-y-2">
+                <h2 class="text-xl font-black text-slate-900 dark:text-white">${lesson.title}</h2>
+                <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">${lesson.intro}</p>
+              </div>
+
+              <!-- MAIN POINT Highlight Box -->
+              <div class="hl-card p-4 rounded-2xl bg-amber-500/10 border border-amber-500/40 space-y-2.5">
+                <div class="flex items-center justify-between gap-2">
+                  <span class="hl-tag text-[10px] font-black tracking-widest uppercase text-amber-400 flex items-center gap-1.5">
+                    <span>◎</span> MAIN POINT
+                  </span>
+                  <button onclick="openHighlightModal()" class="text-[11px] font-bold text-amber-400 hover:text-amber-300">
+                    Explain this highlight &gt;
+                  </button>
+                </div>
+                <p class="text-sm font-extrabold text-white leading-relaxed">${lesson.mainPoint}</p>
+                <p class="text-xs text-slate-300">${lesson.simpleLine}</p>
+                <p class="text-xs text-amber-200/90 flex items-center gap-1.5">
+                  <span>💡</span> ${lesson.exampleLine}
+                </p>
+                <p class="text-[11px] italic text-slate-400">${lesson.examNote}</p>
+              </div>
+
+              <!-- Diagram Card -->
+              ${tutorState.mode !== 'Text' ? `
+                <div class="p-4 rounded-2xl bg-[#090f1d] border border-slate-800 space-y-3">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-extrabold tracking-widest uppercase text-slate-400">${diag.header}</span>
+                    <button onclick="openZoomModal('${diag.id}')" class="w-8 h-8 rounded-full bg-slate-800/80 text-slate-300 hover:text-cyan-300 flex items-center justify-center">
+                      <i data-lucide="maximize-2" class="w-3.5 h-3.5"></i>
+                    </button>
+                  </div>
+                  ${diag.svg}
+                  <p class="text-xs text-slate-300 leading-relaxed pt-1 border-t border-slate-800/80">${diag.caption}</p>
+                </div>
+              ` : ''}
+
+              <!-- Numbered Steps -->
+              ${!tutorState.importantOnly ? `
+                <div class="space-y-3 pt-1">
+                  ${lesson.steps.map(st => `
+                    <div class="flex items-start gap-3">
+                      <div class="w-6 h-6 rounded-full bg-cyan-500/15 border border-cyan-500/40 text-cyan-300 text-xs font-black flex items-center justify-center shrink-0 mt-0.5">
+                        ${st.num}
+                      </div>
+                      <div class="space-y-0.5">
+                        <h4 class="text-xs sm:text-sm font-extrabold text-white">${st.heading}</h4>
+                        <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">${st.body}</p>
+                      </div>
+                    </div>
+                  `).join('')}
+                </div>
+              ` : ''}
+
+              <!-- Formula Box -->
+              <div class="px-4 py-3 rounded-xl bg-[#081220] border border-cyan-500/30 font-mono text-xs sm:text-sm font-bold text-cyan-300">
+                ${lesson.formula}
+              </div>
+
+              <!-- Daily Life Example -->
+              <div class="p-3.5 rounded-xl bg-[#090f1d] border border-slate-800/90 text-xs text-slate-300 leading-relaxed">
+                <strong class="text-white">Daily life:</strong> ${lesson.dailyLife.replace(/^Daily life:\s*/i, '')}
+              </div>
+
+              <!-- Language Translation Box if Urdu / Sindhi / Roman Urdu selected -->
+              ${appState.lang !== 'en' ? `
+                <div class="p-3.5 rounded-xl bg-cyan-500/10 border border-cyan-500/30 text-xs text-cyan-100 ${appState.lang==='ur'?'lang-ur':appState.lang==='sd'?'lang-sd':''}">
+                  ${lesson.translations[appState.lang] || lesson.translations.roman}
+                </div>
+              ` : ''}
+
+              <!-- Smart Highlight & Language Controls -->
+              <div class="space-y-2.5 pt-2 border-t border-slate-800/80">
+                <div class="flex flex-wrap gap-2">
+                  <button onclick="tutorState.highlightsEnabled=true; renderCurrentView();" class="px-3 py-1.5 rounded-full bg-[#090f1d] border border-slate-800 text-[11px] font-bold text-slate-300">◎ Highlight main point</button>
+                  <button onclick="openHighlightModal()" class="px-3 py-1.5 rounded-full bg-[#090f1d] border border-slate-800 text-[11px] font-bold text-slate-300">✨ Explain this highlight</button>
+                  <button onclick="tutorState.importantOnly=!tutorState.importantOnly; renderCurrentView();" class="px-3 py-1.5 rounded-full border text-[11px] font-bold ${tutorState.importantOnly?'bg-cyan-500/15 border-cyan-500/60 text-cyan-300':'bg-[#090f1d] border-slate-800 text-slate-300'}">Important points only</button>
+                  <button onclick="tutorState.examOnly=!tutorState.examOnly; renderCurrentView();" class="px-3 py-1.5 rounded-full border text-[11px] font-bold ${tutorState.examOnly?'bg-emerald-500/15 border-emerald-500/60 text-emerald-300':'bg-[#090f1d] border-slate-800 text-slate-300'}">🎓 Show exam points</button>
+                </div>
+
+                <div class="flex flex-wrap items-center gap-1.5">
+                  <span class="text-[10px] font-extrabold tracking-widest uppercase text-slate-400 mr-1">文A EXPLAIN IN</span>
+                  ${[
+                    { code: 'en', label: 'Simple English' },
+                    { code: 'ur', label: 'Urdu' },
+                    { code: 'sd', label: 'Sindhi' },
+                    { code: 'roman', label: 'Roman Urdu' }
+                  ].map(lg => `
+                    <button onclick="appState.lang='${lg.code}'; saveState(); renderCurrentView();"
+                      class="px-3 py-1 rounded-full text-[11px] font-bold border ${appState.lang===lg.code?'bg-cyan-500/15 border-cyan-500/60 text-cyan-300':'bg-[#090f1d] border-slate-800 text-slate-400'}">
+                      ${lg.label}
+                    </button>
+                  `).join('')}
+                </div>
+
+                <div class="flex flex-wrap gap-2">
+                  <button onclick="saveCurrentLessonToNotes()" class="px-3 py-1.5 rounded-full bg-[#090f1d] border border-slate-800 text-[11px] font-bold text-slate-300">🔖 Save highlighted notes</button>
+                  <button onclick="tutorState.highlightsEnabled=!tutorState.highlightsEnabled; renderCurrentView();" class="px-3 py-1.5 rounded-full bg-[#090f1d] border border-slate-800 text-[11px] font-bold text-slate-400">
+                    ${tutorState.highlightsEnabled ? 'Remove highlights' : 'Restore highlights'}
+                  </button>
+                </div>
+              </div>
+
+              <!-- IMPORTANT POINTS Cards -->
+              <div class="space-y-2 pt-1">
+                <p class="text-[10px] font-extrabold tracking-widest uppercase text-slate-400">IMPORTANT POINTS • ${lesson.importantPoints.length}</p>
+                ${lesson.importantPoints.map(pt => `
+                  <div onclick="openHighlightModal()" class="p-3.5 rounded-2xl bg-[#091224] border-l-4 ${pt.color==='indigo'?'border-indigo-400':pt.color==='emerald'?'border-emerald-400':'border-cyan-400'} border border-slate-800 cursor-pointer hover:border-cyan-500/40 space-y-1.5">
+                    <span class="inline-block px-2 py-0.5 rounded bg-cyan-500/15 text-cyan-300 text-[9px] font-black tracking-wider uppercase">${pt.tag}</span>
+                    <p class="text-xs sm:text-sm font-bold text-white">${pt.text}</p>
+                  </div>
+                `).join('')}
+              </div>
+
+              <!-- View this in 3D & Save to Notes -->
+              <div class="flex flex-wrap gap-2.5 pt-2">
+                <button onclick="open3DForCurrentTopic()" class="px-4 py-2.5 rounded-full bg-[#090f1d] border border-slate-800 hover:border-cyan-500/50 text-xs font-extrabold text-slate-200 flex items-center gap-2">
+                  <i data-lucide="box" class="w-4 h-4 text-cyan-400"></i> View this in 3D
+                </button>
+                <button onclick="saveCurrentLessonToNotes()" class="px-4 py-2.5 rounded-full bg-[#090f1d] border border-slate-800 hover:border-cyan-500/50 text-xs font-extrabold text-slate-200 flex items-center gap-2">
+                  <i data-lucide="bookmark" class="w-4 h-4 text-cyan-400"></i> Save to notes
+                </button>
+              </div>
+
+              <!-- Read Aloud Bar -->
+              <div class="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-800/80 text-xs">
+                <button onclick="readLessonAloud()" class="flex items-center gap-1.5 font-bold text-slate-300 hover:text-cyan-300 mr-2">
+                  <i data-lucide="volume-2" class="w-4 h-4 text-cyan-400"></i> Read aloud
+                </button>
+                ${[0.8, 1, 1.25].map(rate => `
+                  <button onclick="tutorState.speechRate=${rate}; renderCurrentView();"
+                    class="px-2.5 py-1 rounded-full font-bold ${tutorState.speechRate===rate?'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50':'text-slate-400'}">
+                    ${rate}×
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `}
+
+          <!-- Bottom Ask Input Card -->
+          <form onsubmit="event.preventDefault(); submitTutorQuestion(document.getElementById('tutor-bottom-input').value);"
+            class="p-3.5 rounded-2xl bg-white dark:bg-[#0d1425] border border-slate-200 dark:border-slate-800/90 space-y-2.5 shadow-lg">
+            <textarea id="tutor-bottom-input" rows="2"
+              placeholder="Ask anything — “Why does a lens focus light?” or “Solve: a car accelerates at 2 m/s² for 5 s...”"
+              class="w-full bg-transparent text-xs sm:text-sm text-slate-900 dark:text-slate-100 placeholder-slate-500 focus:outline-none resize-none">${tutorState.askedQuestion}</textarea>
+            <div class="flex items-center justify-between pt-1">
+              <button type="button" onclick="startVoiceInput()" class="flex items-center gap-2 text-xs font-bold text-slate-400 hover:text-cyan-300">
+                <i data-lucide="mic" class="w-4 h-4"></i> Speak
+              </button>
+              <button type="submit" ${tutorState.isThinking ? 'disabled' : ''} class="px-4 py-2 rounded-full bg-cyan-500/20 hover:bg-cyan-500/30 border border-cyan-500/50 text-cyan-300 text-xs font-extrabold flex items-center gap-1.5">
+                <i data-lucide="send" class="w-3.5 h-3.5"></i> ${tutorState.isThinking ? 'Thinking...' : 'Ask'}
+              </button>
+            </div>
+          </form>
+        </div>
+      `;
+    }
+
+    function open3DForCurrentTopic() {
+      const q = (tutorState.askedQuestion || '').toLowerCase();
+      if (q.includes('pendulum') || q.includes('harmonic')) viewer3DState.modelId = 'pendulum';
+      else if (q.includes('coulomb') || q.includes('charge')) viewer3DState.modelId = 'coulomb';
+      else if (q.includes('ohm') || q.includes('circuit')) viewer3DState.modelId = 'circuit';
+      else if (q.includes('lens') || q.includes('focus')) viewer3DState.modelId = 'lens';
+      else if (q.includes('mass') || q.includes('weight') || q.includes('force')) viewer3DState.modelId = 'motion';
+      else if (q.includes('magnet')) viewer3DState.modelId = 'magnet';
+      else viewer3DState.modelId = 'wave';
+      navigateTo('viewer3d');
+    }
+
+    // =========================================================================
+    // 5. ANIMATED 3D LEARNING LAB (ALL CHAPTERS — SMOOTH INTERACTIVE CANVAS)
+    // =========================================================================
+    let viewer3DState = {
+      modelId: 'wave',
+      playing: true,
+      showLabels: true,
+      showFormula: true,
+      subTab: '3d',
+      rotX: 0.12,
+      rotY: -0.18,
+      zoom: 1,
+      selectedPart: null,
+      animFrame: null
+    };
+
+    const MODELS_3D_CATALOG = {
+      vernier: {
+        cls: '9', name: 'Measuring instruments',
+        summary: 'Vernier Calipers measure internal, external diameters and depth accurate to 0.01 cm.',
+        formula: 'Reading = MSR + (VSR × LC)',
+        formulaNote: 'Main scale reading plus Vernier scale division multiplied by Least Count (0.01 cm).',
+        diagramKey: 'forces_dynamics',
+        parts: ['Main Scale (mm/cm)', 'Vernier Sliding Scale', 'Outside Jaws', 'Inside Jaws', 'Depth Probe'],
+        steps: ['Check zero error before closing jaws.', 'Read main scale just before Vernier zero.', 'Multiply matching Vernier division by 0.01 cm.']
+      },
+      motion: {
+        cls: '9', name: 'Motion on a track',
+        summary: 'Uniformly accelerated motion and force vectors acting on a moving block.',
+        formula: 'F = m × a   |   S = vi·t + ½ a t²',
+        formulaNote: 'Net unbalanced force produces acceleration in the direction of force.',
+        diagramKey: 'forces_dynamics',
+        parts: ['Moving Mass (m)', 'Applied Force (F)', 'Normal Reaction (N)', 'Weight (W = mg)', 'Friction (f)'],
+        steps: ['Identify forces along horizontal and vertical axes.', 'Compute net force F_net = F_applied - f.', 'Divide net force by mass to get acceleration a.']
+      },
+      torque: {
+        cls: '9', name: 'Torque & Equilibrium',
+        summary: 'Turning effect of force around a pivot or fulcrum balanced by clockwise and anticlockwise moments.',
+        formula: 'τ = F × d',
+        formulaNote: 'Torque increases with greater applied force F or longer moment arm d.',
+        diagramKey: 'forces_dynamics',
+        parts: ['Pivot / Fulcrum', 'Moment Arm (d)', 'Clockwise Load', 'Anticlockwise Force'],
+        steps: ['Measure perpendicular distance d from pivot.', 'Compute clockwise and anticlockwise moments.', 'Equilibrium holds when Στ = 0.']
+      },
+      wave: {
+        cls: '10', name: 'Transverse wave',
+        summary: 'Crests, troughs, amplitude and wavelength on a travelling transverse wave.',
+        formula: 'v = f × λ   |   y = A sin(kx - ωt)',
+        formulaNote: 'Here A = 0.8 m and λ = 2.0 m. The wave moves one wavelength per period, so v = f λ. Each particle only vibrates up and down.',
+        diagramKey: 'wave_motion',
+        parts: ['Wave', 'Crest', 'Trough', 'Amplitude (A)', 'Wavelength (λ)'],
+        steps: ['Particles vibrate perpendicular to wave travel.', 'Crest is maximum upward displacement; Trough is downward.', 'Wave speed equals frequency times wavelength (v = fλ).']
+      },
+      pendulum: {
+        cls: '10', name: 'Simple pendulum',
+        summary: 'A heavy bob on a light string swings to and fro about its mean position — simple harmonic motion.',
+        formula: 'T = 2π √(L / g)',
+        formulaNote: 'The time period depends only on the length L and g, not on the mass of the bob and (for small swings) not on the amplitude. Making L four times longer doubles T.',
+        diagramKey: 'pendulum_shm',
+        parts: ['Pivot (fixed point)', 'String (light and inextensible)', 'Bob (heavy mass m)', 'Length L', 'Angle θ (displacement)'],
+        steps: ['Displace bob slightly by angle θ.', 'Restoring component mg·sinθ pulls bob back to mean position.', 'One full oscillation takes time T = 2π√(L/g).']
+      },
+      sound: {
+        cls: '10', name: 'Sound compressions',
+        summary: 'Longitudinal sound waves travel through air via alternating compressions and rarefactions.',
+        formula: 'v = f × λ   (≈ 340 m/s in air)',
+        formulaNote: 'Air molecules oscillate parallel to the direction of sound propagation.',
+        diagramKey: 'wave_motion',
+        parts: ['Vibrating Source', 'Compression Zone', 'Rarefaction Zone', 'Wavelength (λ)'],
+        steps: ['Vibrating diaphragm pushes air layers together.', 'High-pressure compressions and low-pressure rarefactions travel outward.', 'Eardrum detects these pressure variations as sound.']
+      },
+      lens: {
+        cls: '10', name: 'Convex lens rays',
+        summary: 'Parallel light rays refract through a biconvex lens and converge at Principal Focus F.',
+        formula: '1/f = 1/p + 1/q',
+        formulaNote: 'Thicker lenses have shorter focal length f and higher optical power P = 1/f.',
+        diagramKey: 'convex_lens',
+        parts: ['Optical Center (O)', 'Convex Glass Body', 'Principal Axis', 'Incident Rays', 'Principal Focus (F)'],
+        steps: ['Parallel rays strike the curved glass surface.', 'Rays bend toward the principal axis.', 'All rays intersect sharply at Principal Focus F.']
+      },
+      coulomb: {
+        cls: '10', name: "Coulomb's charges",
+        summary: 'Electrostatic interaction between two point charges q1 and q2 separated by distance r.',
+        formula: 'F = k · q1 · q2 / r²',
+        formulaNote: 'Force acts along the line joining the charges and obeys the inverse-square law.',
+        diagramKey: 'coulomb_law',
+        parts: ['Charge +q1', 'Charge +q2', 'Separation Distance (r)', 'Repulsive Force Vectors'],
+        steps: ['Place charges q1 and q2 at distance r.', 'Calculate product |q1·q2|.', 'Divide by r² and multiply by k = 9×10⁹.']
+      },
+      circuit: {
+        cls: '10', name: 'Series circuit flow',
+        summary: 'Electron drift and conventional current flowing through series resistors R1 and R2.',
+        formula: 'V = I × (R1 + R2)',
+        formulaNote: 'Total resistance in series equals the sum of individual resistances.',
+        diagramKey: 'ohms_law',
+        parts: ['DC Battery (V)', 'Conducting Wire', 'Resistor R1', 'Resistor R2', 'Charge Carriers'],
+        steps: ['Battery creates potential difference V.', 'Same current I flows through R1 and R2.', 'Voltage drops add up: V = V1 + V2.']
+      },
+      magnet: {
+        cls: '10', name: 'Bar magnet field',
+        summary: '3D magnetic field loops emerging from the North pole and entering the South pole.',
+        formula: 'F = I L B sin(θ)',
+        formulaNote: 'Field density is highest near the N and S poles.',
+        diagramKey: 'bar_magnet',
+        parts: ['North Pole (N)', 'South Pole (S)', 'Outer Field Loops', 'Magnetic Axis'],
+        steps: ['Field lines exit North pole.', 'Loops curve smoothly through space into South pole.', 'Compass needles align tangent to the loops.']
+      }
+    };
+
+    function start3DCanvasLoop() {
+      if (viewer3DState.animFrame) cancelAnimationFrame(viewer3DState.animFrame);
+      let phase = 0;
+
+      function project3D(x, y, z, w, h) {
+        const cy = Math.cos(viewer3DState.rotY), sy = Math.sin(viewer3DState.rotY);
+        const cx = Math.cos(viewer3DState.rotX), sx = Math.sin(viewer3DState.rotX);
+        const x1 = x * cy - z * sy;
+        const z1 = x * sy + z * cy;
+        const y2 = y * cx - z1 * sx;
+        const z2 = y * sx + z1 * cx;
+        const fov = 340 * viewer3DState.zoom;
+        const scale = fov / (fov + z2 + 180);
+        return { sx: w / 2 + x1 * scale, sy: h / 2 + y2 * scale, scale };
+      }
+
+      function drawTag(ctx, text, x, y, color = '#e2e8f0') {
+        if (!viewer3DState.showLabels) return;
+        ctx.font = '700 10px Inter, sans-serif';
+        const padX = 8;
+        const tw = ctx.measureText(text).width;
+        const bw = tw + padX * 2;
+        const bh = 20;
+        ctx.fillStyle = 'rgba(13, 20, 37, 0.88)';
+        ctx.strokeStyle = 'rgba(71, 85, 105, 0.7)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(x - bw / 2, y - bh / 2, bw, bh, 10);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = color;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, x, y);
+      }
+
+      function frame() {
+        const canvas = document.getElementById('physics-3d-canvas');
+        if (!canvas || currentView !== 'viewer3d' || viewer3DState.subTab !== '3d') return;
+        const dpr = window.devicePixelRatio || 1;
+        const rect = canvas.getBoundingClientRect();
+        if (canvas.width !== Math.round(rect.width * dpr) || canvas.height !== Math.round(rect.height * dpr)) {
+          canvas.width = Math.round(rect.width * dpr);
+          canvas.height = Math.round(rect.height * dpr);
+        }
+        const ctx = canvas.getContext('2d');
+        ctx.save();
+        ctx.scale(dpr, dpr);
+        const w = rect.width;
+        const h = rect.height;
+
+        ctx.fillStyle = '#070c18';
+        ctx.fillRect(0, 0, w, h);
+
+        if (viewer3DState.playing) phase += 0.045;
+        const m = viewer3DState.modelId;
+
+        if (m === 'wave' || m === 'sound') {
+          const pLeft = project3D(-145, 0, 0, w, h);
+          const pRight = project3D(145, 0, 0, w, h);
+          ctx.strokeStyle = 'rgba(100,116,139,0.55)';
+          ctx.setLineDash([4, 4]);
+          ctx.lineWidth = 1.2;
+          ctx.beginPath();
+          ctx.moveTo(pLeft.sx, pLeft.sy);
+          ctx.lineTo(pRight.sx, pRight.sy);
+          ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.strokeStyle = '#22d3ee';
+          ctx.lineWidth = 2.6;
+          ctx.beginPath();
+          let crestPt = null, troughPt = null, crest2Pt = null;
+          for (let i = 0; i <= 120; i++) {
+            const u = -140 + (i / 120) * 280;
+            const ang = (u / 44) - phase;
+            const y = -Math.sin(ang) * 44;
+            const z = Math.cos(ang) * 14;
+            const pt = project3D(u, y, z, w, h);
+            if (i === 0) ctx.moveTo(pt.sx, pt.sy);
+            else ctx.lineTo(pt.sx, pt.sy);
+            if (i === 28) crestPt = pt;
+            if (i === 56) troughPt = pt;
+            if (i === 84) crest2Pt = pt;
+          }
+          ctx.stroke();
+
+          if (crestPt) {
+            ctx.fillStyle = '#34d399';
+            ctx.beginPath(); ctx.arc(crestPt.sx, crestPt.sy, 4.5, 0, Math.PI * 2); ctx.fill();
+            drawTag(ctx, 'Crest', crestPt.sx, crestPt.sy - 20, '#6ee7b7');
+            drawTag(ctx, 'Amplitude A', crestPt.sx + 16, crestPt.sy + 26, '#c084fc');
+          }
+          if (troughPt) {
+            ctx.fillStyle = '#f472b6';
+            ctx.beginPath(); ctx.arc(troughPt.sx, troughPt.sy, 4.5, 0, Math.PI * 2); ctx.fill();
+            drawTag(ctx, 'Trough', troughPt.sx, troughPt.sy + 20, '#f9a8d4');
+          }
+          if (crest2Pt) {
+            ctx.fillStyle = '#34d399';
+            ctx.beginPath(); ctx.arc(crest2Pt.sx, crest2Pt.sy, 4.5, 0, Math.PI * 2); ctx.fill();
+            drawTag(ctx, 'Wave travel →', crest2Pt.sx, crest2Pt.sy - 18, '#38bdf8');
+          }
+          drawTag(ctx, 'Wavelength λ', w / 2, h - 42, '#cbd5e1');
+        } else if (m === 'pendulum') {
+          const swingAngle = Math.sin(phase * 0.9) * 0.45;
+          const len = 115;
+          const pivot = project3D(0, -75, 0, w, h);
+          const bobX = Math.sin(swingAngle) * len;
+          const bobY = -75 + Math.cos(swingAngle) * len;
+          const bob = project3D(bobX, bobY, Math.sin(swingAngle) * 18, w, h);
+
+          const bL = project3D(-65, -75, 0, w, h);
+          const bR = project3D(65, -75, 0, w, h);
+          ctx.strokeStyle = '#64748b';
+          ctx.lineWidth = 4;
+          ctx.beginPath(); ctx.moveTo(bL.sx, bL.sy); ctx.lineTo(bR.sx, bR.sy); ctx.stroke();
+
+          const eqBot = project3D(0, 48, 0, w, h);
+          ctx.strokeStyle = 'rgba(100,116,139,0.5)';
+          ctx.setLineDash([4, 4]);
+          ctx.lineWidth = 1.2;
+          ctx.beginPath(); ctx.moveTo(pivot.sx, pivot.sy); ctx.lineTo(eqBot.sx, eqBot.sy); ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.strokeStyle = '#22d3ee';
+          ctx.lineWidth = 2.2;
+          ctx.beginPath(); ctx.moveTo(pivot.sx, pivot.sy); ctx.lineTo(bob.sx, bob.sy); ctx.stroke();
+
+          const grad = ctx.createRadialGradient(bob.sx - 4, bob.sy - 4, 2, bob.sx, bob.sy, 15);
+          grad.addColorStop(0, '#c7d2fe');
+          grad.addColorStop(1, '#6366f1');
+          ctx.fillStyle = grad;
+          ctx.beginPath(); ctx.arc(bob.sx, bob.sy, 14, 0, Math.PI * 2); ctx.fill();
+
+          drawTag(ctx, 'Pivot θ', pivot.sx, pivot.sy + 18, '#fbbf24');
+          drawTag(ctx, 'Length L', (pivot.sx + bob.sx) / 2 + 34, (pivot.sy + bob.sy) / 2, '#38bdf8');
+          drawTag(ctx, 'Bob (mass m)', bob.sx, bob.sy + 26, '#e2e8f0');
+        } else if (m === 'coulomb') {
+          const pulse = Math.sin(phase) * 10;
+          const q1 = project3D(-72 - pulse * 0.4, 0, 0, w, h);
+          const q2 = project3D(72 + pulse * 0.4, 0, 0, w, h);
+
+          ctx.strokeStyle = '#64748b';
+          ctx.setLineDash([4, 4]);
+          ctx.beginPath(); ctx.moveTo(q1.sx, q1.sy); ctx.lineTo(q2.sx, q2.sy); ctx.stroke();
+          ctx.setLineDash([]);
+
+          ctx.strokeStyle = '#22d3ee';
+          ctx.lineWidth = 2.4;
+          ctx.beginPath(); ctx.moveTo(q1.sx - 22, q1.sy); ctx.lineTo(q1.sx - 56, q1.sy); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(q2.sx + 22, q2.sy); ctx.lineTo(q2.sx + 56, q2.sy); ctx.stroke();
+
+          ctx.fillStyle = '#0ea5e9';
+          ctx.beginPath(); ctx.arc(q1.sx, q1.sy, 20, 0, Math.PI * 2); ctx.fill();
+          ctx.fillStyle = '#a855f7';
+          ctx.beginPath(); ctx.arc(q2.sx, q2.sy, 20, 0, Math.PI * 2); ctx.fill();
+
+          drawTag(ctx, '+q1', q1.sx, q1.sy, '#ffffff');
+          drawTag(ctx, '+q2', q2.sx, q2.sy, '#ffffff');
+          drawTag(ctx, 'Distance r', w / 2, q1.sy - 24, '#cbd5e1');
+          drawTag(ctx, 'F12 ←', q1.sx - 44, q1.sy - 20, '#38bdf8');
+          drawTag(ctx, '→ F21', q2.sx + 44, q2.sy - 20, '#38bdf8');
+        } else if (m === 'circuit') {
+          const corners = [
+            project3D(-105, -52, 0, w, h),
+            project3D(105, -52, 0, w, h),
+            project3D(105, 52, 0, w, h),
+            project3D(-105, 52, 0, w, h)
+          ];
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          corners.forEach((c, idx) => idx === 0 ? ctx.moveTo(c.sx, c.sy) : ctx.lineTo(c.sx, c.sy));
+          ctx.closePath();
+          ctx.stroke();
+
+          for (let k = 0; k < 8; k++) {
+            const t = ((phase * 0.25 + k / 8) % 1);
+            let ex = 0, ey = 0;
+            if (t < 0.25) { ex = -105 + (t / 0.25) * 210; ey = -52; }
+            else if (t < 0.5) { ex = 105; ey = -52 + ((t - 0.25) / 0.25) * 104; }
+            else if (t < 0.75) { ex = 105 - ((t - 0.5) / 0.25) * 210; ey = 52; }
+            else { ex = -105; ey = 52 - ((t - 0.75) / 0.25) * 104; }
+            const ep = project3D(ex, ey, 0, w, h);
+            ctx.fillStyle = '#fbbf24';
+            ctx.beginPath(); ctx.arc(ep.sx, ep.sy, 3.8, 0, Math.PI * 2); ctx.fill();
+          }
+
+          drawTag(ctx, 'Battery V', corners[0].sx, (corners[0].sy + corners[3].sy) / 2, '#34d399');
+          drawTag(ctx, 'Resistor R1', w / 2 - 42, corners[0].sy, '#38bdf8');
+          drawTag(ctx, 'Resistor R2', w / 2 + 45, corners[0].sy, '#c084fc');
+        } else if (m === 'lens') {
+          const top = project3D(0, -68, 0, w, h);
+          const bot = project3D(0, 68, 0, w, h);
+          const foc = project3D(95, 0, 0, w, h);
+
+          ctx.fillStyle = 'rgba(56, 189, 248, 0.22)';
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          ctx.ellipse(top.sx, (top.sy + bot.sy) / 2, 16 * viewer3DState.zoom, Math.abs(bot.sy - top.sy) / 2, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+
+          [-38, 0, 38].forEach(ry => {
+            const p1 = project3D(-130, ry, 0, w, h);
+            const p2 = project3D(0, ry, 0, w, h);
+            const p3 = project3D(135, -ry * 0.42, 0, w, h);
+            ctx.strokeStyle = '#22d3ee';
+            ctx.lineWidth = 1.8;
+            ctx.beginPath();
+            ctx.moveTo(p1.sx, p1.sy);
+            ctx.lineTo(p2.sx, p2.sy);
+            ctx.lineTo(p3.sx, p3.sy);
+            ctx.stroke();
+          });
+
+          ctx.fillStyle = '#fbbf24';
+          ctx.beginPath(); ctx.arc(foc.sx, foc.sy, 5, 0, Math.PI * 2); ctx.fill();
+          drawTag(ctx, 'Convex Lens', top.sx, top.sy - 14, '#38bdf8');
+          drawTag(ctx, 'Principal Focus F', foc.sx, foc.sy + 20, '#fbbf24');
+        } else if (m === 'magnet') {
+          const nPole = project3D(-45, 0, 0, w, h);
+          const sPole = project3D(45, 0, 0, w, h);
+          ctx.strokeStyle = 'rgba(56, 189, 248, 0.65)';
+          ctx.lineWidth = 1.5;
+          [42, 68].forEach(ry => {
+            ctx.beginPath();
+            ctx.ellipse((nPole.sx + sPole.sx) / 2, nPole.sy, 95 * viewer3DState.zoom, ry * viewer3DState.zoom, 0, 0, Math.PI * 2);
+            ctx.stroke();
+          });
+          drawTag(ctx, 'North (N)', nPole.sx - 18, nPole.sy, '#818cf8');
+          drawTag(ctx, 'South (S)', sPole.sx + 18, sPole.sy, '#f472b6');
+        } else {
+          const slide = Math.sin(phase) * 42;
+          const blk = project3D(slide, 10, 0, w, h);
+          const gL = project3D(-125, 34, 0, w, h);
+          const gR = project3D(125, 34, 0, w, h);
+          ctx.strokeStyle = '#475569';
+          ctx.lineWidth = 2;
+          ctx.beginPath(); ctx.moveTo(gL.sx, gL.sy); ctx.lineTo(gR.sx, gR.sy); ctx.stroke();
+
+          ctx.fillStyle = '#1e293b';
+          ctx.strokeStyle = '#38bdf8';
+          ctx.lineWidth = 2.2;
+          ctx.beginPath();
+          ctx.roundRect(blk.sx - 34, blk.sy - 22, 68, 44, 8);
+          ctx.fill();
+          ctx.stroke();
+
+          drawTag(ctx, 'Mass m', blk.sx, blk.sy, '#e2e8f0');
+          drawTag(ctx, 'Normal N ↑', blk.sx, blk.sy - 42, '#38bdf8');
+          drawTag(ctx, 'Force F →', blk.sx + 68, blk.sy, '#22d3ee');
+          drawTag(ctx, 'Weight W = mg ↓', blk.sx, blk.sy + 44, '#c084fc');
+        }
+
+        ctx.font = '600 10px Inter, sans-serif';
+        ctx.fillStyle = 'rgba(148, 163, 184, 0.85)';
+        ctx.textAlign = 'center';
+        ctx.fillText('Drag to rotate · pinch/scroll to zoom · two fingers to pan', w / 2, h - 12);
+
+        ctx.restore();
+        viewer3DState.animFrame = requestAnimationFrame(frame);
+      }
+
+      viewer3DState.animFrame = requestAnimationFrame(frame);
+    }
+
+    function bind3DCanvasGestures() {
+      const canvas = document.getElementById('physics-3d-canvas');
+      if (!canvas) return;
+      let dragging = false, lastX = 0, lastY = 0;
+
+      canvas.onpointerdown = (e) => {
+        dragging = true;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        canvas.setPointerCapture(e.pointerId);
+      };
+      canvas.onpointermove = (e) => {
+        if (!dragging) return;
+        const dx = e.clientX - lastX;
+        const dy = e.clientY - lastY;
+        lastX = e.clientX;
+        lastY = e.clientY;
+        viewer3DState.rotY += dx * 0.012;
+        viewer3DState.rotX = Math.max(-1.1, Math.min(1.1, viewer3DState.rotX + dy * 0.012));
+      };
+      canvas.onpointerup = () => { dragging = false; };
+      canvas.onwheel = (e) => {
+        e.preventDefault();
+        viewer3DState.zoom = Math.max(0.65, Math.min(1.65, viewer3DState.zoom - e.deltaY * 0.001));
+      };
+    }
+
+    function render3DViewer(container) {
+      const m = MODELS_3D_CATALOG[viewer3DState.modelId] || MODELS_3D_CATALOG.wave;
+      const diag = DIAGRAM_LIBRARY[m.diagramKey] || DIAGRAM_LIBRARY.wave_motion;
+      const class9Models = Object.entries(MODELS_3D_CATALOG).filter(([_, v]) => v.cls === '9');
+      const class10Models = Object.entries(MODELS_3D_CATALOG).filter(([_, v]) => v.cls === '10');
+
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="space-y-1.5 pt-1">
+            <p class="text-[11px] font-extrabold tracking-widest uppercase text-cyan-400">3D LEARNING LAB</p>
+            <h1 class="text-3xl font-black text-white leading-tight">See the physics, don’t imagine it</h1>
+            <p class="text-xs sm:text-sm text-slate-400">Rotate a real model, tap any part to hear what it does, then follow the guided explanation.</p>
+          </div>
+
+          <button onclick="navigateTo('tutor'); submitTutorQuestion('Explain ${m.name.replace(/'/g, "\\'")}');"
+            class="px-4 py-2.5 rounded-full bg-[#0d1425] border border-slate-800 hover:border-cyan-500/50 text-xs font-bold text-slate-200 inline-flex items-center gap-2">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-cyan-400"></i> Ask AI about this model
+          </button>
+
+          <div class="space-y-2">
+            <div class="flex items-center gap-2 overflow-x-auto pb-1">
+              <span class="shrink-0 px-2.5 py-1 rounded-full bg-slate-800 text-[10px] font-black tracking-wider text-slate-300">CLASS 9</span>
+              ${class9Models.map(([key, item]) => `
+                <button onclick="viewer3DState.modelId='${key}'; viewer3DState.selectedPart=null; renderCurrentView();"
+                  class="shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold border ${viewer3DState.modelId===key?'bg-cyan-500/15 border-cyan-500/60 text-cyan-200':'bg-[#0d1425] border-slate-800 text-slate-300'}">
+                  ${item.name}
+                </button>
+              `).join('')}
+            </div>
+
+            <div class="flex items-center gap-2 overflow-x-auto pb-1">
+              <span class="shrink-0 px-2.5 py-1 rounded-full bg-slate-800 text-[10px] font-black tracking-wider text-slate-300">CLASS 10</span>
+              ${class10Models.map(([key, item]) => `
+                <button onclick="viewer3DState.modelId='${key}'; viewer3DState.selectedPart=null; renderCurrentView();"
+                  class="shrink-0 px-3.5 py-1.5 rounded-full text-xs font-bold border ${viewer3DState.modelId===key?'bg-cyan-500/15 border-cyan-500/60 text-cyan-200':'bg-[#0d1425] border-slate-800 text-slate-300'}">
+                  ${item.name}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          <div class="rounded-3xl bg-[#070c18] border border-slate-800 overflow-hidden">
+            ${viewer3DState.subTab === '3d' ? `
+              <canvas id="physics-3d-canvas" class="w-full h-72 sm:h-80 block touch-none cursor-grab active:cursor-grabbing"></canvas>
+            ` : viewer3DState.subTab === '2d' ? `
+              <div class="p-4 space-y-2">${diag.svg}<p class="text-xs text-slate-400">${diag.caption}</p></div>
+            ` : `
+              <div class="p-5 space-y-3">
+                ${m.steps.map((st, idx) => `
+                  <div class="flex items-start gap-3">
+                    <span class="w-6 h-6 rounded-full bg-cyan-500/15 text-cyan-300 text-xs font-black flex items-center justify-center shrink-0">${idx + 1}</span>
+                    <p class="text-xs sm:text-sm text-slate-200">${st}</p>
+                  </div>
+                `).join('')}
+              </div>
+            `}
+          </div>
+
+          <div class="flex flex-wrap gap-2">
+            <button onclick="viewer3DState.playing=!viewer3DState.playing; renderCurrentView();"
+              class="px-3.5 py-2 rounded-full bg-[#0d1425] border border-slate-800 text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="${viewer3DState.playing?'pause':'play'}" class="w-3.5 h-3.5 text-cyan-400"></i>
+              ${viewer3DState.playing ? 'Pause animation' : 'Play animation'}
+            </button>
+            <button onclick="viewer3DState.showLabels=!viewer3DState.showLabels; renderCurrentView();"
+              class="px-3.5 py-2 rounded-full bg-[#0d1425] border border-slate-800 text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="${viewer3DState.showLabels?'eye-off':'eye'}" class="w-3.5 h-3.5 text-slate-400"></i>
+              ${viewer3DState.showLabels ? 'Hide labels' : 'Show labels'}
+            </button>
+            <button onclick="viewer3DState.rotX=0.12; viewer3DState.rotY=-0.18; viewer3DState.zoom=1; showToast('3D view reset','info');"
+              class="px-3.5 py-2 rounded-full bg-[#0d1425] border border-slate-800 text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 text-slate-400"></i> Reset view
+            </button>
+            <button onclick="showToast('${(viewer3DState.selectedPart || m.parts[0])}: ${m.summary.replace(/'/g, "\\'")}', 'info');"
+              class="px-3.5 py-2 rounded-full bg-[#0d1425] border border-slate-800 text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="atom" class="w-3.5 h-3.5 text-cyan-400"></i> Explain this part
+            </button>
+            <button onclick="appState.notes.unshift({id:'note_'+Date.now(),title:'3D Model: ${m.name.replace(/'/g, "\\'")}',chapter:'3D Lab',cls:'${m.cls}',tag:'Diagram',content:'${m.summary.replace(/'/g, "\\'")} | ${m.formula.replace(/'/g, "\\'")}',date:'2026-11-22'}); saveState(); showToast('Saved 3D view to My Notes!','success');"
+              class="px-3.5 py-2 rounded-full bg-[#0d1425] border border-slate-800 text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <i data-lucide="bookmark" class="w-3.5 h-3.5 text-slate-400"></i> Save view to notes
+            </button>
+            <button onclick="viewer3DState.showFormula=!viewer3DState.showFormula; renderCurrentView();"
+              class="px-3.5 py-2 rounded-full bg-[#0d1425] border border-slate-800 text-xs font-bold text-slate-200 flex items-center gap-1.5">
+              <span>Σ</span> ${viewer3DState.showFormula ? 'Hide formula' : 'Show formula'}
+            </button>
+          </div>
+
+          <div class="grid grid-cols-3 gap-2">
+            ${[
+              { k: '3d', label: '3D Model' },
+              { k: '2d', label: '2D Diagram' },
+              { k: 'steps', label: 'Step by step' }
+            ].map(tab => `
+              <button onclick="viewer3DState.subTab='${tab.k}'; renderCurrentView();"
+                class="py-2.5 rounded-full text-xs font-extrabold border ${viewer3DState.subTab===tab.k?'bg-cyan-500/15 border-cyan-500/60 text-cyan-300':'bg-[#0d1425] border-slate-800 text-slate-400'}">
+                ${tab.label}
+              </button>
+            `).join('')}
+          </div>
+
+          <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800 space-y-2">
+            <p class="text-xs sm:text-sm font-bold text-white leading-relaxed">${m.summary}</p>
+            <p class="text-xs text-slate-400 leading-relaxed flex items-start gap-2">
+              <span class="text-cyan-400 font-bold">ⓘ</span>
+              <span>Tap any part on the model, or pick one below. This model is simplified for clarity, but the lengths and the numbers match the formula exactly.</span>
+            </p>
+          </div>
+
+          ${viewer3DState.showFormula ? `
+            <div class="p-4 rounded-2xl bg-[#081322] border border-cyan-500/30 space-y-1.5">
+              <p class="text-[10px] font-black tracking-widest uppercase text-cyan-400">Σ FORMULA</p>
+              <p class="text-sm sm:text-base font-mono font-bold text-cyan-300">${m.formula}</p>
+              <p class="text-xs text-slate-300 leading-relaxed">${m.formulaNote}</p>
+            </div>
+          ` : ''}
+
+          <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800 space-y-2">
+            <p class="text-[10px] font-extrabold tracking-widest uppercase text-slate-400">PARTS OF THIS MODEL</p>
+            <div class="space-y-2">
+              ${m.parts.map(pt => `
+                <button onclick="viewer3DState.selectedPart='${pt.replace(/'/g, "\\'")}'; showToast('Selected part: ${pt.replace(/'/g, "\\'")}', 'info'); renderCurrentView();"
+                  class="w-full px-4 py-3 rounded-xl border text-left flex items-center justify-between text-xs sm:text-sm font-bold ${viewer3DState.selectedPart===pt?'bg-cyan-500/15 border-cyan-500/50 text-cyan-200':'bg-[#090f1d] border-slate-800 text-slate-200 hover:border-slate-700'}">
+                  <span>${pt}</span>
+                  <span class="text-slate-500">&gt;</span>
+                </button>
+              `).join('')}
+            </div>
+          </div>
+        </div>
+      `;
+
+      if (viewer3DState.subTab === '3d') {
+        setTimeout(() => {
+          bind3DCanvasGestures();
+          start3DCanvasLoop();
+        }, 20);
+      }
+    }
+
+    // =========================================================================
+    // 6. ALL REMAINING VIEWS
+    // =========================================================================
+    function renderChaptersPage(container) {
+      const list = PHYSICS_CHAPTERS[appState.studentClass] || PHYSICS_CHAPTERS['10'];
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-[10px] font-extrabold uppercase tracking-widest text-cyan-400">SINDH TEXTBOOK BOARD</p>
+              <h2 class="text-xl font-black text-white">Physics Chapters</h2>
+            </div>
+            <div class="flex gap-2">
+              <button onclick="appState.studentClass='9'; saveState(); renderCurrentView();" class="px-3.5 py-1.5 rounded-full text-xs font-bold ${appState.studentClass==='9'?'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50':'bg-[#0d1425] text-slate-400'}">Class 9</button>
+              <button onclick="appState.studentClass='10'; saveState(); renderCurrentView();" class="px-3.5 py-1.5 rounded-full text-xs font-bold ${appState.studentClass==='10'?'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50':'bg-[#0d1425] text-slate-400'}">Class 10</button>
+            </div>
+          </div>
+          <div class="space-y-3">
+            ${list.map(ch => `
+              <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800 space-y-2.5">
+                <div class="flex items-center justify-between gap-2">
+                  <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-400 font-black text-xs flex items-center justify-center shrink-0">
+                      ${ch.num}
+                    </div>
+                    <div>
+                      <h3 class="text-sm font-black text-white">${ch.name}</h3>
+                      <p class="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">${ch.topics.length} TOPICS</p>
+                    </div>
+                  </div>
+                  <button onclick="navigateTo('tutor'); submitTutorQuestion('${ch.topics[0].replace(/'/g, "\\'")}');" class="px-3 py-1.5 rounded-full bg-cyan-500/15 text-cyan-300 text-xs font-bold shrink-0">Study</button>
+                </div>
+                <div class="flex flex-wrap gap-1.5">
+                  ${ch.topics.map(tp => `
+                    <button onclick="navigateTo('tutor'); submitTutorQuestion('${tp.replace(/'/g, "\\'")}');" class="px-3 py-1 rounded-full bg-[#090f1d] border border-slate-800 text-[11px] text-slate-300 hover:border-cyan-500/40">${tp}</button>
+                  `).join('')}
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderDashboard(container) {
+      const pct = Math.min(100, Math.round(((appState.studiedMin || 0) / (appState.dailyGoalMin || 30)) * 100));
+      const bestScore = appState.testScores && appState.testScores.length
+        ? Math.max(...appState.testScores.map(s => s.pct)) + '%'
+        : '—';
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="space-y-2 pt-1">
+            <p class="text-[10px] font-extrabold uppercase tracking-widest text-cyan-400">CLASS ${appState.studentClass} • PHYSICS</p>
+            <h1 class="text-2xl sm:text-3xl font-black text-white">Welcome back, ${(appState.studentName || 'Muhammad').split(' ')[0]}</h1>
+            <p class="text-xs sm:text-sm text-slate-400">Your diagrams, scores and study plan — all in one place.</p>
+            <div class="pt-1">
+              <button onclick="navigateTo('tutor')" class="px-5 py-2.5 rounded-full bg-cyan-400 text-[#080d1a] text-xs font-black inline-flex items-center gap-2 shadow">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Ask the tutor
+              </button>
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800 space-y-2">
+              <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">◎ DAILY GOAL</p>
+              <p class="text-xl font-black text-white">${appState.studiedMin || 0} <span class="text-xs font-normal text-slate-400">/ ${appState.dailyGoalMin || 30} min</span></p>
+              <div class="w-full h-1.5 rounded-full bg-slate-800 overflow-hidden">
+                <div class="h-full bg-cyan-400 rounded-full" style="width:${pct}%"></div>
+              </div>
+            </div>
+            <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800 space-y-1">
+              <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">🔥 STREAK</p>
+              <p class="text-xl font-black text-white">${appState.streakDays || 1} <span class="text-xs font-normal text-slate-400">days</span></p>
+              <p class="text-[11px] text-slate-500">${appState.studiedMin > 0 ? 'Active session logged' : 'No sessions today'}</p>
+            </div>
+            <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800 space-y-1">
+              <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">🏆 LATEST SCORE</p>
+              <p class="text-xl font-black text-white">${bestScore}</p>
+              <p class="text-[11px] text-slate-500">${appState.testScores.length ? appState.testScores.length + ' test(s) completed' : 'Take your first test'}</p>
+            </div>
+          </div>
+
+          <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400 pt-1">START SOMETHING</p>
+          <div class="space-y-2.5">
+            ${[
+              { key: 'tutor', icon: 'sparkles', title: 'AI Physics Tutor', desc: 'Ask anything — get a simple explanation with a diagram.' },
+              { key: 'chapters', icon: 'book-open', title: 'Chapters', desc: 'Open any chapter and study it topic by topic.' },
+              { key: 'solver', icon: 'calculator', title: 'Numerical Solver', desc: 'Given, formula, substitution, answer — step by step.' },
+              { key: 'viewer3d', icon: 'box', title: '3D Model Lab', desc: 'Rotate real 3D Physics models for Class 9 & 10.' }
+            ].map(card => `
+              <button onclick="navigateTo('${card.key}')" class="w-full p-4 rounded-2xl bg-[#0d1425] border border-slate-800 hover:border-cyan-500/40 flex items-center justify-between text-left">
+                <div class="flex items-center gap-3.5">
+                  <div class="w-10 h-10 rounded-xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center shrink-0">
+                    <i data-lucide="${card.icon}" class="w-5 h-5"></i>
+                  </div>
+                  <div>
+                    <h3 class="text-sm font-extrabold text-white">${card.title}</h3>
+                    <p class="text-xs text-slate-400">${card.desc}</p>
+                  </div>
+                </div>
+                <i data-lucide="arrow-up-right" class="w-4 h-4 text-slate-500 shrink-0"></i>
+              </button>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    let solverState = {
+      promptText: '',
+      toolTab: 'calc',
+      calcExpr: '0',
+      unitCat: 'Length',
+      unitVal: 1,
+      unitFrom: 'm',
+      unitTo: 'km',
+      solution: null
+    };
+
+    function solvePhysicsNumericalText(raw) {
+      const txt = (raw || '').trim();
+      if (!txt) return null;
+      const nums = (txt.match(/-?\d+(\.\d+)?/g) || []).map(Number);
+      const low = txt.toLowerCase();
+      if (low.includes('accelerat') || (low.includes('m/s') && nums.length >= 2)) {
+        const a = nums[0] || 2, t = nums[1] || 5;
+        const vf = (a * t).toFixed(2);
+        const s = (0.5 * a * t * t).toFixed(2);
+        return {
+          given: `Initial velocity vi = 0 m/s, Acceleration a = ${a} m/s², Time t = ${t} s`,
+          formula: 'vf = vi + a × t   &   S = vi×t + ½ a t²',
+          steps: [`vf = 0 + (${a} × ${t}) = ${vf} m/s`, `S = 0 + 0.5 × ${a} × (${t})² = ${s} m`],
+          answer: `Final Velocity vf = ${vf} m/s, Distance S = ${s} m`
+        };
+      }
+      if (low.includes('battery') || low.includes('resistor') || low.includes('ohm')) {
+        const v = nums[0] || 12, r = nums[1] || 6;
+        const i = (v / (r || 1)).toFixed(2);
+        return {
+          given: `Voltage V = ${v} V, Resistance R = ${r} Ω`,
+          formula: 'I = V / R',
+          steps: [`I = ${v} / ${r} = ${i} A`],
+          answer: `Current I = ${i} A`
+        };
+      }
+      const m = nums[0] || 5, f = nums[1] || 20;
+      const a = (f / (m || 1)).toFixed(2);
+      return {
+        given: `Mass m = ${m} kg, Force F = ${f} N`,
+        formula: 'a = F / m',
+        steps: [`a = ${f} / ${m} = ${a} m/s²`],
+        answer: `Acceleration a = ${a} m/s²`
+      };
+    }
+
+    function renderNumericalSolver(container) {
+      const unitFactors = {
+        Length: { m: 1, km: 0.001, cm: 100, mm: 1000 },
+        Mass: { kg: 1, g: 1000, mg: 1e6 },
+        Time: { s: 1, min: 1 / 60, hr: 1 / 3600 },
+        Speed: { 'm/s': 1, 'km/h': 3.6 },
+        Force: { N: 1, kN: 0.001 }
+      };
+      const unitsForCat = Object.keys(unitFactors[solverState.unitCat] || unitFactors.Length);
+      if (!unitsForCat.includes(solverState.unitFrom)) solverState.unitFrom = unitsForCat[0];
+      if (!unitsForCat.includes(solverState.unitTo)) solverState.unitTo = unitsForCat[1] || unitsForCat[0];
+      const baseVal = (parseFloat(solverState.unitVal) || 0) / unitFactors[solverState.unitCat][solverState.unitFrom];
+      const convertedVal = +(baseVal * unitFactors[solverState.unitCat][solverState.unitTo]).toPrecision(6);
+
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="space-y-1.5">
+            <p class="text-[10px] font-extrabold uppercase tracking-widest text-cyan-400">SMART NUMERICAL SOLVER</p>
+            <h1 class="text-2xl font-black text-white">Solve it the way it is marked</h1>
+            <p class="text-xs text-slate-400">Given values, formula, substitution, each calculation line and the final answer with SI units.</p>
+            <div class="pt-1">
+              <button onclick="navigateTo('camera')" class="px-4 py-2 rounded-full bg-[#0d1425] border border-slate-800 text-xs font-bold text-slate-200 inline-flex items-center gap-2">
+                <i data-lucide="camera" class="w-3.5 h-3.5 text-cyan-400"></i> Solve from a photo
+              </button>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800 space-y-3">
+            <textarea id="num-problem-box" rows="2" placeholder="Type the numerical exactly as it appears in your book..."
+              class="w-full p-3 rounded-xl bg-[#090f1d] border border-slate-800 text-xs text-white placeholder-slate-500 focus:outline-none">${solverState.promptText}</textarea>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex gap-1.5">
+                ${['English', 'Urdu', 'Sindhi', 'Roman Urdu'].map(l => `
+                  <span class="px-2.5 py-1 rounded-full bg-[#090f1d] border border-slate-800 text-[10px] font-bold text-slate-400">${l}</span>
+                `).join('')}
+              </div>
+              <button onclick="solverState.promptText=document.getElementById('num-problem-box').value; solverState.solution=solvePhysicsNumericalText(solverState.promptText); renderCurrentView();"
+                class="px-4 py-2 rounded-full bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 text-xs font-extrabold inline-flex items-center gap-1.5">
+                <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Solve step by step
+              </button>
+            </div>
+            <div class="space-y-1.5 pt-1">
+              ${[
+                'A car starts from rest and accelerates at 3 m/s² for 8 s...',
+                'A 5 kg box is pushed with 20 N on a surface with 5 N...',
+                'A 12 V battery is connected to a 6 Ω resistor. Find the...'
+              ].map(ex => `
+                <button onclick="solverState.promptText='${ex}'; solverState.solution=solvePhysicsNumericalText('${ex}'); renderCurrentView();"
+                  class="w-full text-left px-3.5 py-2 rounded-xl bg-[#090f1d] border border-slate-800 hover:border-cyan-500/40 text-[11px] text-slate-300 truncate">
+                  ${ex}
+                </button>
+              `).join('')}
+            </div>
+          </div>
+
+          ${solverState.solution ? `
+            <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/40 space-y-2 text-xs">
+              <p class="text-[10px] font-black uppercase text-amber-400">◎ BOARD-MARKED SOLUTION</p>
+              <p class="font-bold text-white">1. Given Data: <span class="font-normal text-slate-300">${solverState.solution.given}</span></p>
+              <p class="font-bold text-white">2. Formula: <span class="font-mono text-cyan-300">${solverState.solution.formula}</span></p>
+              <p class="font-bold text-white">3. Calculation:</p>
+              ${solverState.solution.steps.map(s => `<p class="pl-3 font-mono text-slate-200">${s}</p>`).join('')}
+              <p class="p-2.5 rounded-xl bg-[#090f1d] text-emerald-300 font-extrabold">4. Result: ${solverState.solution.answer}</p>
+            </div>
+          ` : ''}
+
+          <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800 space-y-3">
+            <div class="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-[#090f1d] border border-slate-800">
+              ${[
+                { k: 'calc', label: 'Calculator' },
+                { k: 'unit', label: 'Unit converter' },
+                { k: 'rearrange', label: 'Rearrange' }
+              ].map(t => `
+                <button onclick="solverState.toolTab='${t.k}'; renderCurrentView();"
+                  class="py-1.5 rounded-lg text-xs font-bold ${solverState.toolTab===t.k?'bg-cyan-500/15 text-cyan-300 border border-cyan-500/40':'text-slate-400'}">
+                  ${t.label}
+                </button>
+              `).join('')}
+            </div>
+
+            ${solverState.toolTab === 'calc' ? `
+              <div class="p-3 rounded-xl bg-[#090f1d] border border-slate-800 text-right font-mono">
+                <p class="text-lg font-bold text-white truncate">${solverState.calcExpr}</p>
+              </div>
+              <div class="grid grid-cols-4 gap-2 font-mono text-xs font-bold">
+                ${['7','8','9','/','4','5','6','*','1','2','3','-','C','0','=','+'].map(btn => `
+                  <button onclick="
+                    if('${btn}'==='C'){solverState.calcExpr='0';}
+                    else if('${btn}'==='='){try{solverState.calcExpr=String(Function('return '+solverState.calcExpr)());}catch(e){solverState.calcExpr='Error';}}
+                    else{solverState.calcExpr=(solverState.calcExpr==='0'||solverState.calcExpr==='Error')?'${btn}':solverState.calcExpr+'${btn}';}
+                    renderCurrentView();"
+                    class="py-2.5 rounded-xl border ${btn==='='?'bg-cyan-500/20 border-cyan-500/50 text-cyan-300':'bg-[#090f1d] border-slate-800 text-slate-200'}">
+                    ${btn}
+                  </button>
+                `).join('')}
+              </div>
+            ` : solverState.toolTab === 'unit' ? `
+              <div class="space-y-3">
+                <div class="flex flex-wrap gap-1.5">
+                  ${Object.keys(unitFactors).map(cat => `
+                    <button onclick="solverState.unitCat='${cat}'; renderCurrentView();"
+                      class="px-3 py-1 rounded-full text-xs font-bold ${solverState.unitCat===cat?'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40':'bg-[#090f1d] text-slate-400'}">
+                      ${cat}
+                    </button>
+                  `).join('')}
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                  <input type="number" value="${solverState.unitVal}" oninput="solverState.unitVal=this.value; renderCurrentView();"
+                    class="col-span-2 px-3 py-2 rounded-xl bg-[#090f1d] border border-slate-800 text-xs font-bold text-white" />
+                  <select onchange="solverState.unitFrom=this.value; renderCurrentView();" class="px-2 py-2 rounded-xl bg-[#090f1d] border border-slate-800 text-xs font-bold text-cyan-300">
+                    ${unitsForCat.map(u => `<option value="${u}" ${u===solverState.unitFrom?'selected':''}>${u}</option>`).join('')}
+                  </select>
+                </div>
+                <div class="grid grid-cols-3 gap-2">
+                  <div class="col-span-2 px-3 py-2 rounded-xl bg-[#090f1d] border border-cyan-500/30 text-xs font-mono font-bold text-cyan-300">${convertedVal}</div>
+                  <select onchange="solverState.unitTo=this.value; renderCurrentView();" class="px-2 py-2 rounded-xl bg-[#090f1d] border border-slate-800 text-xs font-bold text-cyan-300">
+                    ${unitsForCat.map(u => `<option value="${u}" ${u===solverState.unitTo?'selected':''}>${u}</option>`).join('')}
+                  </select>
+                </div>
+              </div>
+            ` : `
+              <div class="space-y-2 text-xs font-mono">
+                <div class="p-3 rounded-xl bg-[#090f1d] border border-slate-800"><span class="text-cyan-400">F = m × a</span>  →  m = F / a  |  a = F / m</div>
+                <div class="p-3 rounded-xl bg-[#090f1d] border border-slate-800"><span class="text-cyan-400">v = f × λ</span>  →  f = v / λ  |  λ = v / f</div>
+                <div class="p-3 rounded-xl bg-[#090f1d] border border-slate-800"><span class="text-cyan-400">V = I × R</span>  →  I = V / R  |  R = V / I</div>
+              </div>
+            `}
+          </div>
+        </div>
+      `;
+    }
+
+    let labState = { exp: 'motion', u: 0, a: 2, t: 4, v: 12, r: 4, freq: 170, amp: 28, len: 0.8 };
+    function renderVirtualLab(container) {
+      const dist = (labState.u * labState.t + 0.5 * labState.a * labState.t * labState.t).toFixed(1);
+      const vf = (labState.u + labState.a * labState.t).toFixed(1);
+      const curr = (labState.v / (labState.r || 1)).toFixed(2);
+      const period = (2 * Math.PI * Math.sqrt(labState.len / 9.8)).toFixed(2);
+      const freqP = (1 / parseFloat(period)).toFixed(2);
+      const vib10 = (10 / parseFloat(period)).toFixed(1);
+      const carPct = Math.min(88, Math.max(6, (parseFloat(dist) / 120) * 85));
+
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="space-y-1">
+            <p class="text-[10px] font-extrabold uppercase tracking-widest text-cyan-400">VIRTUAL PHYSICS LAB</p>
+            <h1 class="text-2xl font-black text-white">Explore interactive simulations</h1>
+            <p class="text-xs text-slate-400">Adjust sliders to see how changing values changes live numbers and the conclusion to write down.</p>
+          </div>
+
+          <div class="flex gap-2 overflow-x-auto pb-1">
+            ${[
+              { k: 'motion', label: 'Motion' },
+              { k: 'ohm', label: "Ohm's law" },
+              { k: 'wave', label: 'Sound waves' },
+              { k: 'pendulum', label: 'Pendulum' }
+            ].map(tab => `
+              <button onclick="labState.exp='${tab.k}'; renderCurrentView();"
+                class="shrink-0 px-4 py-2 rounded-full text-xs font-bold border ${labState.exp===tab.k?'bg-cyan-500/15 border-cyan-500/50 text-cyan-200':'bg-[#0d1425] border-slate-800 text-slate-300'}">
+                ${tab.label}
+              </button>
+            `).join('')}
+          </div>
+
+          ${labState.exp === 'motion' ? `
+            <div class="p-4 rounded-3xl bg-[#0d1425] border border-slate-800 space-y-4">
+              <div>
+                <h2 class="text-base font-black text-white">Motion under uniform acceleration</h2>
+                <p class="text-xs text-slate-400"><strong class="text-cyan-400">Objective:</strong> See how initial velocity, acceleration and time decide final velocity (${vf} m/s) and distance (${dist} m).</p>
+              </div>
+              <div class="space-y-3 text-xs">
+                <div>
+                  <div class="flex justify-between font-bold"><span>Initial velocity u</span><span class="text-cyan-400">${labState.u} m/s</span></div>
+                  <input type="range" min="0" max="20" value="${labState.u}" oninput="labState.u=Number(this.value); renderCurrentView();" class="w-full accent-cyan-400" />
+                </div>
+                <div>
+                  <div class="flex justify-between font-bold"><span>Acceleration a</span><span class="text-cyan-400">${labState.a} m/s²</span></div>
+                  <input type="range" min="1" max="10" value="${labState.a}" oninput="labState.a=Number(this.value); renderCurrentView();" class="w-full accent-cyan-400" />
+                </div>
+                <div>
+                  <div class="flex justify-between font-bold"><span>Time t</span><span class="text-cyan-400">${labState.t} s</span></div>
+                  <input type="range" min="1" max="10" value="${labState.t}" oninput="labState.t=Number(this.value); renderCurrentView();" class="w-full accent-cyan-400" />
+                </div>
+              </div>
+              <div class="p-4 rounded-2xl bg-[#090f1d] border border-slate-800 space-y-3">
+                <div class="relative h-10 border-b border-slate-700">
+                  <div style="left:${carPct}%" class="absolute bottom-1 w-8 h-5 rounded-lg bg-cyan-400 shadow"></div>
+                </div>
+                <p class="text-xs font-mono text-slate-300">distance covered = <strong class="text-cyan-300">${dist} m</strong> | vf = <strong class="text-emerald-300">${vf} m/s</strong></p>
+              </div>
+            </div>
+          ` : labState.exp === 'ohm' ? `
+            <div class="p-4 rounded-3xl bg-[#0d1425] border border-slate-800 space-y-4">
+              <div>
+                <h2 class="text-base font-black text-white">Ohm’s Law Circuit Lab</h2>
+                <p class="text-xs text-slate-400"><strong class="text-cyan-400">Objective:</strong> Verify I = V / R by changing battery voltage and circuit resistance.</p>
+              </div>
+              <div class="space-y-3 text-xs">
+                <div>
+                  <div class="flex justify-between font-bold"><span>Voltage V</span><span class="text-cyan-400">${labState.v} V</span></div>
+                  <input type="range" min="2" max="24" value="${labState.v}" oninput="labState.v=Number(this.value); renderCurrentView();" class="w-full accent-cyan-400" />
+                </div>
+                <div>
+                  <div class="flex justify-between font-bold"><span>Resistance R</span><span class="text-cyan-400">${labState.r} Ω</span></div>
+                  <input type="range" min="1" max="20" value="${labState.r}" oninput="labState.r=Number(this.value); renderCurrentView();" class="w-full accent-cyan-400" />
+                </div>
+              </div>
+              <div class="p-4 rounded-2xl bg-[#090f1d] border border-slate-800 font-mono text-xs text-cyan-300">
+                Current I = V / R = ${labState.v} / ${labState.r} = <strong>${curr} A</strong>
+              </div>
+            </div>
+          ` : labState.exp === 'wave' ? `
+            <div class="p-4 rounded-3xl bg-[#0d1425] border border-slate-800 space-y-4">
+              <div>
+                <h2 class="text-base font-black text-white">Sound waves: frequency, wavelength and speed</h2>
+                <p class="text-xs text-slate-400"><strong class="text-cyan-400">Objective:</strong> Use v = f λ to see how higher frequency squeezes wavelength when wave speed stays 340 m/s.</p>
+              </div>
+              <div class="space-y-3 text-xs">
+                <div>
+                  <div class="flex justify-between font-bold"><span>Frequency f</span><span class="text-cyan-400">${labState.freq} Hz</span></div>
+                  <input type="range" min="85" max="680" value="${labState.freq}" oninput="labState.freq=Number(this.value); renderCurrentView();" class="w-full accent-cyan-400" />
+                </div>
+                <div>
+                  <div class="flex justify-between font-bold"><span>Amplitude</span><span class="text-cyan-400">${labState.amp} px</span></div>
+                  <input type="range" min="10" max="50" value="${labState.amp}" oninput="labState.amp=Number(this.value); renderCurrentView();" class="w-full accent-cyan-400" />
+                </div>
+              </div>
+              <div class="p-4 rounded-2xl bg-[#090f1d] border border-slate-800 font-mono text-xs text-cyan-300">
+                wavelength λ = 340 / ${labState.freq} = <strong>${(340 / labState.freq).toFixed(2)} m</strong>
+              </div>
+            </div>
+          ` : `
+            <div class="p-4 rounded-3xl bg-[#0d1425] border border-slate-800 space-y-4">
+              <div>
+                <h2 class="text-base font-black text-white">Simple pendulum</h2>
+                <p class="text-xs text-slate-400"><strong class="text-cyan-400">Objective:</strong> Find out how the length of a simple pendulum changes its time period.</p>
+              </div>
+              <div class="text-xs">
+                <div class="flex justify-between font-bold"><span>Length L</span><span class="text-cyan-400">${labState.len} m</span></div>
+                <input type="range" min="0.2" max="2.0" step="0.1" value="${labState.len}" oninput="labState.len=Number(this.value); renderCurrentView();" class="w-full accent-cyan-400" />
+              </div>
+              <div class="grid grid-cols-3 gap-2 text-center">
+                <div class="p-3 rounded-xl bg-[#090f1d] border border-slate-800"><p class="text-[9px] text-slate-400">TIME PERIOD</p><p class="text-sm font-black text-cyan-300">${period} s</p></div>
+                <div class="p-3 rounded-xl bg-[#090f1d] border border-slate-800"><p class="text-[9px] text-slate-400">FREQUENCY</p><p class="text-sm font-black text-cyan-300">${freqP} Hz</p></div>
+                <div class="p-3 rounded-xl bg-[#090f1d] border border-slate-800"><p class="text-[9px] text-slate-400">VIBRATIONS / 10S</p><p class="text-sm font-black text-cyan-300">${vib10}</p></div>
+              </div>
+            </div>
+          `}
+        </div>
+      `;
+    }
+
+    let cameraState = { previewName: '', hint: '', result: null };
+    function renderCameraSolver(container) {
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="space-y-1">
+            <p class="text-[10px] font-extrabold uppercase tracking-widest text-cyan-400">AI CAMERA SOLVER</p>
+            <h1 class="text-2xl font-black text-white">Photograph the question</h1>
+            <p class="text-xs text-slate-400">The photo is read privately, transcribed, then solved step by step with a diagram.</p>
+          </div>
+          <div class="p-5 rounded-3xl bg-[#0d1425] border border-slate-800 text-center space-y-3">
+            <div class="w-12 h-12 rounded-2xl bg-cyan-500/15 text-cyan-400 flex items-center justify-center mx-auto">
+              <i data-lucide="camera" class="w-6 h-6"></i>
+            </div>
+            <p class="text-xs text-slate-300 font-semibold">${cameraState.previewName ? 'Selected: ' + cameraState.previewName : 'Take a photo of a numerical or diagram.'}</p>
+            <label class="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-[#090f1d] border border-slate-700 text-xs font-bold text-slate-200 cursor-pointer">
+              <i data-lucide="upload" class="w-3.5 h-3.5 text-cyan-400"></i> Choose a photo
+              <input type="file" accept="image/*" class="hidden" onchange="if(this.files[0]){cameraState.previewName=this.files[0].name; renderCurrentView();}" />
+            </label>
+            <p class="text-[10px] text-slate-500">Stored privately — only you can open it.</p>
+          </div>
+          <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800 space-y-3">
+            <p class="text-xs font-bold text-slate-300">Anything the photo cannot show?</p>
+            <input id="cam-hint" type="text" value="${cameraState.hint}" placeholder="e.g. the unit is cm, not m"
+              class="w-full px-3.5 py-2.5 rounded-xl bg-[#090f1d] border border-slate-800 text-xs text-white" />
+            <button onclick="cameraState.hint=document.getElementById('cam-hint').value; cameraState.result=solvePhysicsNumericalText(cameraState.hint || 'A car accelerates at 2 m/s2 for 5 s'); renderCurrentView();"
+              class="w-full py-2.5 rounded-full bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 text-xs font-extrabold">
+              Read and solve
+            </button>
+          </div>
+          ${cameraState.result ? `
+            <div class="p-4 rounded-2xl bg-amber-500/10 border border-amber-500/40 space-y-1.5 text-xs">
+              <p class="font-black text-amber-400">TRANSCRIBED & SOLVED</p>
+              <p class="text-slate-200">Given: ${cameraState.result.given}</p>
+              <p class="font-mono text-cyan-300">Formula: ${cameraState.result.formula}</p>
+              <p class="font-extrabold text-emerald-300">${cameraState.result.answer}</p>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    let quizState = { cls: '10', chapter: 'General Wave Properties', diff: 'Medium', active: false, answers: {} };
+    function renderQuizSystem(container) {
+      const sampleQs = [
+        { q: 'What is the SI unit of frequency?', opts: ['Hertz (Hz)', 'Meter (m)', 'Newton (N)', 'Joule (J)'], ans: 0 },
+        { q: 'Which wave equation relates speed, frequency and wavelength?', opts: ['v = f / λ', 'v = f × λ', 'v = λ / f', 'v = f + λ'], ans: 1 },
+        { q: 'Time period of a simple pendulum depends on:', opts: ['Mass of bob', 'Amplitude', 'Length of string', 'Color of bob'], ans: 2 }
+      ];
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="space-y-1">
+            <p class="text-[10px] font-extrabold uppercase tracking-widest text-cyan-400">PRACTICE TESTS</p>
+            <h1 class="text-2xl font-black text-white">Test what you really know</h1>
+            <p class="text-xs text-slate-400">MCQs, short questions, conceptual questions and numericals — marked instantly with explanations.</p>
+          </div>
+          <div class="p-4 rounded-3xl bg-[#0d1425] border border-slate-800 space-y-3 text-xs">
+            <div>
+              <label class="text-[10px] font-bold text-slate-400">Class</label>
+              <select onchange="quizState.cls=this.value; renderCurrentView();" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-[#090f1d] border border-slate-800 text-white font-bold">
+                <option value="9" ${quizState.cls==='9'?'selected':''}>Class 9</option>
+                <option value="10" ${quizState.cls==='10'?'selected':''}>Class 10</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[10px] font-bold text-slate-400">Chapter</label>
+              <select onchange="quizState.chapter=this.value;" class="w-full mt-1 px-3 py-2.5 rounded-xl bg-[#090f1d] border border-slate-800 text-white font-bold">
+                ${(PHYSICS_CHAPTERS[quizState.cls] || PHYSICS_CHAPTERS['10']).map(c => `<option>${c.name}</option>`).join('')}
+              </select>
+            </div>
+            <div class="flex flex-wrap gap-1.5">
+              ${['Easy', 'Medium', 'Hard'].map(d => `<button onclick="quizState.diff='${d}'; renderCurrentView();" class="px-3 py-1.5 rounded-full font-bold ${quizState.diff===d?'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50':'bg-[#090f1d] text-slate-400'}">${d}</button>`).join('')}
+            </div>
+            <button onclick="quizState.active=true; quizState.answers={}; renderCurrentView();"
+              class="px-5 py-2.5 rounded-full bg-cyan-400 text-[#080d1a] font-black inline-flex items-center gap-2">
+              <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> Generate test
+            </button>
+          </div>
+
+          ${quizState.active ? `
+            <div class="space-y-3">
+              ${sampleQs.map((item, idx) => `
+                <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800 space-y-2 text-xs">
+                  <p class="font-extrabold text-white">${idx + 1}. ${item.q}</p>
+                  <div class="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    ${item.opts.map((op, oIdx) => {
+                      const picked = quizState.answers[idx] === oIdx;
+                      return `
+                        <button onclick="quizState.answers[${idx}]=${oIdx}; renderCurrentView();"
+                          class="p-2.5 rounded-xl border text-left font-semibold ${picked?'bg-cyan-500/15 border-cyan-500/50 text-cyan-200':'bg-[#090f1d] border-slate-800 text-slate-300'}">
+                          ${op}
+                        </button>
+                      `;
+                    }).join('')}
+                  </div>
+                </div>
+              `).join('')}
+              <button onclick="
+                let correct=0;
+                [0,1,2].forEach((ans,i)=>{ if(quizState.answers[i]===ans) correct++; });
+                const pct=Math.round((correct/3)*100);
+                appState.testScores.push({chapter:quizState.chapter,pct});
+                saveState();
+                showToast('Test submitted! Score: '+pct+'%','success');
+                renderCurrentView();"
+                class="w-full py-2.5 rounded-full bg-emerald-500/20 border border-emerald-500/50 text-emerald-300 text-xs font-extrabold">
+                Submit & Grade Test
+              </button>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }
+
+    function renderAnalytics(container) {
+      const avg = appState.testScores.length
+        ? Math.round(appState.testScores.reduce((a, b) => a + b.pct, 0) / appState.testScores.length)
+        : 0;
+      const best = appState.testScores.length ? Math.max(...appState.testScores.map(s => s.pct)) : 0;
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="space-y-1">
+            <p class="text-[10px] font-extrabold uppercase tracking-widest text-cyan-400">PROGRESS ANALYTICS</p>
+            <h1 class="text-2xl font-black text-white">How far you have come</h1>
+            <p class="text-xs text-slate-400">Scores, study time and the chapters that need another look.</p>
+          </div>
+          <div class="grid grid-cols-2 gap-3">
+            <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800"><p class="text-[10px] text-slate-400 font-bold">AVERAGE SCORE</p><p class="text-2xl font-black text-white mt-1">${avg}%</p><p class="text-[10px] text-slate-500">${appState.testScores.length} tests completed</p></div>
+            <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800"><p class="text-[10px] text-slate-400 font-bold">BEST SCORE</p><p class="text-2xl font-black text-white mt-1">${best}%</p><p class="text-[10px] text-slate-500">${appState.testScores.length ? 'Personal record' : 'no tests yet'}</p></div>
+            <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800"><p class="text-[10px] text-slate-400 font-bold">STUDY TIME</p><p class="text-2xl font-black text-white mt-1">${Math.floor((appState.studiedMin||0)/60)}h ${(appState.studiedMin||0)%60}m</p><p class="text-[10px] text-slate-500">${appState.studiedMin||0} minutes logged</p></div>
+            <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800"><p class="text-[10px] text-slate-400 font-bold">NOTES SAVED</p><p class="text-2xl font-black text-white mt-1">${appState.notes.length}</p><p class="text-[10px] text-slate-500">revision material</p></div>
+          </div>
+        </div>
+      `;
+    }
+
+    let pomoState = { seconds: 1500, running: false, timer: null };
+    function renderStudyPlanner(container) {
+      const mins = String(Math.floor(pomoState.seconds / 60)).padStart(2, '0');
+      const secs = String(pomoState.seconds % 60).padStart(2, '0');
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="space-y-1">
+            <p class="text-[10px] font-extrabold uppercase tracking-widest text-cyan-400">STUDY PLANNER</p>
+            <h1 class="text-2xl font-black text-white">Your week, planned</h1>
+            <p class="text-xs text-slate-400">Add sessions, tick them off, and let the planner build a revision week for you.</p>
+          </div>
+          <div class="flex gap-2">
+            <button onclick="appState.studySchedule.push({id:Date.now(),day:'Sun 22 Nov',time:'07:00 PM',topic:'Sindh Board Class '+appState.studentClass+' Revision',done:false}); saveState(); renderCurrentView();"
+              class="px-4 py-2 rounded-full bg-[#0d1425] border border-slate-800 text-xs font-bold text-slate-200">+ Add session</button>
+          </div>
+          <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800 text-center space-y-3">
+            <p class="text-[10px] font-extrabold uppercase tracking-widest text-slate-400">POMODORO FOCUS TIMER</p>
+            <p class="text-3xl font-mono font-black text-white">${mins}:${secs}</p>
+            <div class="flex justify-center gap-2">
+              <button onclick="
+                if(pomoState.running){clearInterval(pomoState.timer); pomoState.running=false;}
+                else{pomoState.running=true; pomoState.timer=setInterval(()=>{if(pomoState.seconds>0){pomoState.seconds--; if(currentView==='planner') renderCurrentView();}},1000);}
+                renderCurrentView();"
+                class="px-5 py-2 rounded-full bg-cyan-400 text-[#080d1a] text-xs font-black">
+                ${pomoState.running ? 'Pause' : 'Start'}
+              </button>
+              <button onclick="clearInterval(pomoState.timer); pomoState.running=false; pomoState.seconds=1500; renderCurrentView();"
+                class="px-3.5 py-2 rounded-full bg-[#090f1d] border border-slate-800 text-xs font-bold text-slate-300">Reset</button>
+            </div>
+          </div>
+          <div class="space-y-2">
+            ${appState.studySchedule.map((s, idx) => `
+              <div class="p-3.5 rounded-2xl bg-[#0d1425] border border-slate-800 flex items-center justify-between text-xs">
+                <div>
+                  <p class="font-bold text-white">${s.topic}</p>
+                  <p class="text-[11px] text-slate-400">${s.day} • ${s.time}</p>
+                </div>
+                <button onclick="appState.studySchedule.splice(${idx},1); saveState(); renderCurrentView();" class="text-rose-400 font-bold">Remove</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAlarms(container) {
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="space-y-1">
+            <p class="text-[10px] font-extrabold uppercase tracking-widest text-cyan-400">ALARMS AND REMINDERS</p>
+            <h1 class="text-2xl font-black text-white">Never miss a revision slot</h1>
+            <p class="text-xs text-slate-400">Reminders are saved to your account and notify you while PHYSIX AI is open in this browser.</p>
+          </div>
+          <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800 space-y-3 text-xs">
+            <p class="font-extrabold text-white">New reminder</p>
+            <input id="rem-title" type="text" placeholder="Revise Ohm's law" class="w-full px-3.5 py-2.5 rounded-xl bg-[#090f1d] border border-slate-800 text-white" />
+            <input id="rem-time" type="text" value="5:00 PM" class="w-full px-3.5 py-2.5 rounded-xl bg-[#090f1d] border border-slate-800 text-white" />
+            <button onclick="const t=document.getElementById('rem-title').value||'Physics Revision'; const tm=document.getElementById('rem-time').value||'5:00 PM'; appState.reminders.unshift({id:Date.now(),title:t,time:tm,freq:'Daily'}); saveState(); showToast('Reminder saved!','success'); renderCurrentView();"
+              class="w-full py-2.5 rounded-full bg-cyan-500/20 border border-cyan-500/50 text-cyan-300 font-extrabold">+ Save reminder</button>
+          </div>
+          <div class="space-y-2">
+            ${appState.reminders.map((r, i) => `
+              <div class="p-3.5 rounded-2xl bg-[#0d1425] border border-slate-800 flex items-center justify-between text-xs">
+                <div><p class="font-bold text-white">${r.title}</p><p class="text-[11px] text-cyan-400">${r.time} • ${r.freq}</p></div>
+                <button onclick="appState.reminders.splice(${i},1); saveState(); renderCurrentView();" class="text-rose-400 font-bold">Delete</button>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderTeam(container) {
+      const members = [
+        { role: 'Supervisor', name: 'Sir Bilal Hussain', desc: 'Physics Teacher • Project Supervisor', badge: 'SB' },
+        { role: '01', name: 'Abdul Rauf Mahar', desc: 'Project team member • Class 10', badge: 'AR' },
+        { role: '02', name: 'Muhammad Taha', desc: 'Project team member • Class 10', badge: 'MT' },
+        { role: '03', name: 'Abdul Salam', desc: 'Project team member • Class 10', badge: 'AS' },
+        { role: '04', name: 'Asadullah Khokhar', desc: 'Project team member • Class 10', badge: 'AK' }
+      ];
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="space-y-1">
+            <p class="text-[10px] font-extrabold uppercase tracking-widest text-cyan-400">MEET OUR TEAM</p>
+            <h1 class="text-2xl font-black text-white">Who built PHYSIX AI</h1>
+            <p class="text-xs text-slate-400">Govt Comprehensive Higher Secondary School, Sukkur, Sindh Pakistan</p>
+          </div>
+          <div class="space-y-2.5">
+            ${members.map(m => `
+              <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-xl bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 font-black text-xs flex items-center justify-center">${m.badge}</div>
+                  <div>
+                    <p class="text-sm font-black text-white">${m.name}</p>
+                    <p class="text-xs text-slate-400">${m.desc}</p>
+                  </div>
+                </div>
+                <span class="text-[10px] font-mono text-slate-500">${m.role}</span>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    function renderAboutProject(container) {
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="space-y-1">
+            <p class="text-[10px] font-extrabold uppercase tracking-widest text-cyan-400">ABOUT OUR PROJECT</p>
+            <h1 class="text-2xl font-black text-white">PHYSIX AI — Intelligent Physics Learning Assistant</h1>
+          </div>
+          <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800 space-y-2 text-xs">
+            <p class="font-bold text-cyan-400">🎓 Govt Comprehensive Higher Secondary School, Sukkur, Sindh Pakistan</p>
+            <p class="text-slate-300 italic">"To make Physics easier, more interactive and more understandable for every student through artificial intelligence, visual learning and smart study planning."</p>
+            <p class="text-slate-400 pt-1"><strong class="text-white">Supervisor:</strong> Sir Bilal Hussain (Physics Teacher • Project Supervisor)</p>
+            <p class="text-slate-400"><strong class="text-white">Curriculum:</strong> Sindh Textbook Board Class 9 & Class 10 Physics syllabus with SI units throughout.</p>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderSettings(container) {
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="space-y-1">
+            <p class="text-[10px] font-extrabold uppercase tracking-widest text-cyan-400">PREFERENCES</p>
+            <h1 class="text-2xl font-black text-white">Settings</h1>
+            <p class="text-xs text-slate-400">Your class, study goal, appearance and app tour.</p>
+          </div>
+          <div class="p-4 rounded-3xl bg-[#0d1425] border border-slate-800 space-y-3 text-xs">
+            <p class="font-extrabold text-white">Student profile</p>
+            <div>
+              <label class="text-[10px] font-bold text-slate-400">Display name</label>
+              <input id="set-name" type="text" value="${appState.studentName || 'Muhammad Taha Ghanghro'}" class="w-full mt-1 px-3.5 py-2.5 rounded-xl bg-[#090f1d] border border-slate-800 text-white font-bold" />
+            </div>
+            <div>
+              <label class="text-[10px] font-bold text-slate-400">Class</label>
+              <select id="set-class" class="w-full mt-1 px-3.5 py-2.5 rounded-xl bg-[#090f1d] border border-slate-800 text-white font-bold">
+                <option value="9" ${appState.studentClass==='9'?'selected':''}>Class 9</option>
+                <option value="10" ${appState.studentClass==='10'?'selected':''}>Class 10</option>
+              </select>
+            </div>
+            <div>
+              <label class="text-[10px] font-bold text-slate-400">Daily goal (minutes)</label>
+              <input id="set-goal" type="number" value="${appState.dailyGoalMin || 30}" class="w-full mt-1 px-3.5 py-2.5 rounded-xl bg-[#090f1d] border border-slate-800 text-white font-bold" />
+            </div>
+            <button onclick="appState.studentName=document.getElementById('set-name').value; appState.studentClass=document.getElementById('set-class').value; appState.dailyGoalMin=Number(document.getElementById('set-goal').value)||30; saveState(); updateHeaderAvatar(); showToast('Settings saved!','success'); renderCurrentView();"
+              class="px-5 py-2.5 rounded-full bg-cyan-400 text-[#080d1a] font-black">Save changes</button>
+          </div>
+          <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800 space-y-2.5 text-xs">
+            <p class="font-extrabold text-white">Appearance</p>
+            <div class="flex gap-2">
+              <button onclick="if(appState.theme!=='dark') toggleTheme();" class="px-4 py-2 rounded-full font-bold ${appState.theme==='dark'?'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50':'bg-[#090f1d] text-slate-400'}">🌙 Dark</button>
+              <button onclick="if(appState.theme==='dark') toggleTheme();" class="px-4 py-2 rounded-full font-bold ${appState.theme==='light'?'bg-cyan-500/20 text-cyan-300 border border-cyan-500/50':'bg-[#090f1d] text-slate-400'}">☀️ Light</button>
+            </div>
+          </div>
+          <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800 space-y-2 text-xs">
+            <p class="font-extrabold text-white">Introduction</p>
+            <button onclick="openOnboarding(0)" class="px-4 py-2 rounded-full bg-[#090f1d] border border-slate-800 font-bold text-slate-200">🧭 Take App Tour</button>
+          </div>
+        </div>
+      `;
+    }
+
+    function renderNotesPage(container) {
+      container.innerHTML = `
+        <div class="space-y-4">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-[10px] font-extrabold uppercase tracking-widest text-cyan-400">NOTES AND REVISION</p>
+              <h1 class="text-2xl font-black text-white">Everything you have saved</h1>
+            </div>
+            <button onclick="const t=prompt('Note title:')||'Physics Note'; const c=prompt('Note summary:')||'Key formula and definition'; appState.notes.unshift({id:'n_'+Date.now(),title:t,content:c,date:'2026-11-22'}); saveState(); renderCurrentView();"
+              class="px-3.5 py-2 rounded-full bg-cyan-400 text-[#080d1a] text-xs font-black">+ New note</button>
+          </div>
+          ${appState.notes.length === 0 ? `
+            <div class="p-6 rounded-2xl bg-[#0d1425] border border-slate-800 text-center text-xs text-slate-400">
+              No notes here yet. Save an explanation from the tutor, or write your first note.
+            </div>
+          ` : appState.notes.map((n, idx) => `
+            <div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800 space-y-1.5">
+              <div class="flex justify-between items-center">
+                <p class="text-sm font-extrabold text-cyan-400">${n.title}</p>
+                <button onclick="appState.notes.splice(${idx},1); saveState(); renderCurrentView();" class="text-xs text-rose-400 font-bold">Delete</button>
+              </div>
+              <p class="text-xs text-slate-300 leading-relaxed">${n.content}</p>
+            </div>
+          `).join('')}
+        </div>
+      `;
+    }
+
+    // =========================================================================
+    // 7. SIDEBAR NAVIGATION, MODALS, VOICE & BOOTSTRAP
+    // =========================================================================
+    const NAV_GROUPS = [
+      {
+        heading: 'START HERE',
+        items: [
+          { key: 'tutor', icon: 'sparkles', label: 'AI Physics Tutor', sub: 'Ask any question, get a diagram' },
+          { key: 'chapters', icon: 'book-open', label: 'Chapters', sub: 'Sindh Board chapters and topics' },
+          { key: 'dashboard', icon: 'layout-grid', label: 'Dashboard', sub: 'Your day at a glance' }
+        ]
+      },
+      {
+        heading: 'TOOLS',
+        items: [
+          { key: 'solver', icon: 'calculator', label: 'Numerical Solver', sub: 'Step-by-step numericals' },
+          { key: 'camera', icon: 'camera', label: 'Camera Solver', sub: 'Photo of a question, solved' },
+          { key: 'lab', icon: 'flask-conical', label: 'Virtual Lab', sub: 'Try experiments safely' },
+          { key: 'viewer3d', icon: 'box', label: '3D Model Lab', sub: 'Rotate and inspect models' },
+          { key: 'formulas', icon: 'sigma', label: 'Formula Library', sub: 'All formulas in one place' },
+          { key: 'diagrams', icon: 'line-chart', label: 'Diagrams & Graphs', sub: 'Learn from labelled visuals' }
+        ]
+      },
+      {
+        heading: 'PRACTICE',
+        items: [
+          { key: 'quiz', icon: 'clipboard-check', label: 'Practice Tests', sub: 'AI-made chapter tests' },
+          { key: 'analytics', icon: 'trending-up', label: 'Progress Analytics', sub: 'See what is improving' }
+        ]
+      },
+      {
+        heading: 'PLAN',
+        items: [
+          { key: 'planner', icon: 'calendar', label: 'Study Planner', sub: 'Build your study timetable' },
+          { key: 'alarms', icon: 'bell', label: 'Alarms & Reminders', sub: 'Never miss study time' },
+          { key: 'notes', icon: 'notebook-pen', label: 'My Notes', sub: 'Everything you saved' }
+        ]
+      },
+      {
+        heading: 'MORE',
+        items: [
+          { key: 'team', icon: 'users', label: 'Meet Our Team', sub: 'Who built PHYSIX AI' },
+          { key: 'about', icon: 'info', label: 'About Our Project', sub: 'School and project details' },
+          { key: 'tour', icon: 'compass', label: 'Take App Tour', sub: 'A quick guided walkthrough' },
+          { key: 'settings', icon: 'settings', label: 'Settings', sub: 'Profile, class and preferences' }
+        ]
+      }
+    ];
+
+    function renderSidebar() {
+      const nav = document.getElementById('sidebar-nav');
+      if (!nav) return;
+      nav.innerHTML = NAV_GROUPS.map(g => `
+        <div class="space-y-1.5">
+          <p class="px-2 text-[10px] font-extrabold tracking-widest uppercase text-slate-500">${g.heading}</p>
+          <div class="space-y-1">
+            ${g.items.map(it => {
+              const active = currentView === it.key;
+              return `
+                <button onclick="if('${it.key}'==='tour'){toggleMobileSidebar(false); openOnboarding(0);}else{navigateTo('${it.key}');}"
+                  class="w-full px-3 py-2.5 rounded-2xl flex items-center gap-3 text-left transition ${active ? 'bg-cyan-500/15 border border-cyan-500/40' : 'hover:bg-slate-100 dark:hover:bg-[#11192e] border border-transparent'}">
+                  <i data-lucide="${it.icon}" class="w-4 h-4 ${active ? 'text-cyan-400' : 'text-slate-400'} shrink-0"></i>
+                  <div class="min-w-0">
+                    <p class="text-xs font-extrabold truncate ${active ? 'text-cyan-300' : 'text-slate-800 dark:text-slate-200'}">${it.label}</p>
+                    <p class="text-[10px] text-slate-400 truncate">${it.sub}</p>
+                  </div>
+                </button>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function navigateTo(view) {
+      currentView = view;
+      toggleMobileSidebar(false);
+      renderSidebar();
+      renderCurrentView();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function renderCurrentView() {
+      const main = document.getElementById('main-content');
+      if (!main) return;
+      switch (currentView) {
+        case 'tutor': renderTutor(main); break;
+        case 'chapters': renderChaptersPage(main); break;
+        case 'dashboard': renderDashboard(main); break;
+        case 'solver': renderNumericalSolver(main); break;
+        case 'camera': renderCameraSolver(main); break;
+        case 'lab': renderVirtualLab(main); break;
+        case 'viewer3d': render3DViewer(main); break;
+        case 'quiz': renderQuizSystem(main); break;
+        case 'analytics': renderAnalytics(main); break;
+        case 'planner': renderStudyPlanner(main); break;
+        case 'alarms': renderAlarms(main); break;
+        case 'notes': renderNotesPage(main); break;
+        case 'team': renderTeam(main); break;
+        case 'about': renderAboutProject(main); break;
+        case 'settings': renderSettings(main); break;
+        case 'diagrams':
+          main.innerHTML = `<div class="space-y-4"><div class="space-y-1"><p class="text-[10px] font-extrabold uppercase tracking-widest text-cyan-400">VISUAL LEARNING</p><h1 class="text-2xl font-black text-white">Diagrams and graphs</h1><p class="text-xs text-slate-400">Every diagram is drawn as vector graphics, so labels stay sharp and zoom cleanly on a phone.</p></div>${Object.values(DIAGRAM_LIBRARY).map(d => `<div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800 space-y-2"><div class="flex items-center justify-between"><p class="text-xs font-extrabold text-cyan-400">${d.header}</p><button onclick="openZoomModal('${d.id}')" class="p-1.5 rounded-lg bg-slate-800 text-slate-300"><i data-lucide="maximize-2" class="w-3.5 h-3.5"></i></button></div>${d.svg}<p class="text-xs text-slate-400">${d.caption}</p></div>`).join('')}</div>`;
+          break;
+        case 'formulas':
+          main.innerHTML = `<div class="space-y-3"><div class="space-y-1"><p class="text-[10px] font-extrabold uppercase tracking-widest text-cyan-400">FORMULA LIBRARY</p><h1 class="text-2xl font-black text-white">All formulas in one place</h1></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-3">${[
+            ['Wave Speed', 'v = f * lambda'], ['Simple Pendulum', 'T = 2*pi*sqrt(l/g)'],
+            ["Coulomb's Law", 'F = k*q1*q2 / r^2'], ["Ohm's Law", 'V = I * R'],
+            ['Lens Formula', '1/f = 1/p + 1/q'], ['Newton 2nd Law', 'F = m * a'],
+            ['Weight', 'W = m * g'], ['Momentum', 'p = m * v'],
+            ['Torque (moment of force)', 'τ = F × d'], ['Kinetic Energy', 'KE = ½ m v²']
+          ].map(f => `<div class="p-4 rounded-2xl bg-[#0d1425] border border-slate-800"><p class="text-xs font-bold text-white">${f[0]}</p><p class="text-sm font-mono font-bold text-cyan-400 mt-1">${f[1]}</p></div>`).join('')}</div></div>`;
+          break;
+        default:
+          renderTutor(main);
+          break;
+      }
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function toggleMobileSidebar(open) {
+      const sb = document.getElementById('app-sidebar');
+      const bd = document.getElementById('sidebar-backdrop');
+      if (!sb || !bd) return;
+      if (open) {
+        sb.classList.remove('-translate-x-full');
+        bd.classList.remove('hidden');
+      } else {
+        sb.classList.add('-translate-x-full');
+        bd.classList.add('hidden');
+      }
+    }
+
+    function toggleTheme() {
+      appState.theme = appState.theme === 'dark' ? 'light' : 'dark';
+      document.documentElement.classList.toggle('dark', appState.theme === 'dark');
+      saveState();
+      renderCurrentView();
+    }
+
+    function updateHeaderAvatar() {
+      const btn = document.getElementById('header-avatar-btn');
+      if (btn) btn.textContent = (appState.studentName || 'M')[0].toUpperCase();
+    }
+
+    function showToast(msg, type = 'info') {
+      const box = document.getElementById('toast-container');
+      if (!box) return;
+      const el = document.createElement('div');
+      const border = type === 'error' ? 'border-rose-500/50 text-rose-200' : type === 'success' ? 'border-emerald-500/50 text-emerald-200' : 'border-cyan-500/50 text-cyan-200';
+      el.className = `px-4 py-2.5 rounded-2xl bg-[#0d1425]/95 border ${border} text-xs font-bold shadow-xl`;
+      el.textContent = msg;
+      box.appendChild(el);
+      setTimeout(() => el.remove(), 3000);
+    }
+
+    function openZoomModal(diagId) {
+      const d = DIAGRAM_LIBRARY[diagId] || DIAGRAM_LIBRARY.wave_motion;
+      document.getElementById('zoom-modal-title').textContent = d.header;
+      document.getElementById('zoom-modal-body').innerHTML = d.svg;
+      document.getElementById('zoom-modal-caption').textContent = d.caption;
+      document.getElementById('zoom-modal').classList.remove('hidden');
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    }
+
+    function closeZoomModal() {
+      document.getElementById('zoom-modal').classList.add('hidden');
+    }
+
+    function startVoiceInput() {
+      const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!SR) {
+        showToast('Voice input is not supported in this browser.', 'error');
+        return;
+      }
+      const rec = new SR();
+      rec.lang = 'en-US';
+      showToast('Listening... speak your Physics question', 'info');
+      rec.onresult = (e) => {
+        const transcript = e.results[0][0].transcript;
+        submitTutorQuestion(transcript);
+      };
+      rec.start();
+    }
+
+    function openOnboarding(step) {
+      const steps = [
+        { title: 'Welcome to PHYSIX AI', desc: 'Your intelligent Sindh Board Class 9 & 10 Physics assistant with automatic labelled diagrams and 3D models.' },
+        { title: 'AI Physics Tutor', desc: 'Ask any question in English, Urdu, Sindhi, or Roman Urdu and get step-by-step explanations with MAIN POINT highlights.' },
+        { title: '3D Learning Lab & Virtual Experiments', desc: 'Rotate real 3D Physics models, inspect parts, and run live simulations.' },
+        { title: 'Ready to Start!', desc: 'Developed at Govt Comprehensive Higher Secondary School, Sukkur under Sir Bilal Hussain.' }
+      ];
+      const s = steps[step] || steps[0];
+      const modal = document.getElementById('onboarding-modal');
+      document.getElementById('onboarding-content').innerHTML = `
+        <div class="flex items-center justify-between">
+          <span class="text-[10px] font-black tracking-widest uppercase text-cyan-400">STEP ${step + 1} OF ${steps.length}</span>
+          <button onclick="document.getElementById('onboarding-modal').classList.add('hidden')" class="text-xs text-slate-400 hover:text-white">Skip</button>
+        </div>
+        <h2 class="text-xl font-black text-white">${s.title}</h2>
+        <p class="text-xs sm:text-sm text-slate-300 leading-relaxed">${s.desc}</p>
+        <div class="flex justify-between pt-2">
+          ${step > 0 ? `<button onclick="openOnboarding(${step - 1})" class="px-4 py-2 rounded-full bg-slate-800 text-xs font-bold text-slate-200">Back</button>` : '<span></span>'}
+          ${step < steps.length - 1
+            ? `<button onclick="openOnboarding(${step + 1})" class="px-5 py-2 rounded-full bg-cyan-400 text-[#080d1a] text-xs font-black">Next</button>`
+            : `<button onclick="document.getElementById('onboarding-modal').classList.add('hidden')" class="px-5 py-2 rounded-full bg-cyan-400 text-[#080d1a] text-xs font-black">Start Learning</button>`}
+        </div>
+      `;
+      modal.classList.remove('hidden');
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.documentElement.classList.toggle('dark', appState.theme === 'dark');
+      updateHeaderAvatar();
+      renderSidebar();
+      renderCurrentView();
+    });
+  </script>
+</body>
+</html>
